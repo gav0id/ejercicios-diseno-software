@@ -1,4 +1,4 @@
-*Diseño de Software - Ejercitaciones*
+**Diseño de Software - Ejercitaciones**
 
 Repositorio de prácticas y resoluciones para la cátedra de **Diseño de Software (ITU)**. 
 
