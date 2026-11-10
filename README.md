@@ -9,7 +9,7 @@ El objetivo de este repositorio es documentar la implementación práctica de pa
 Los ejercicios están organizados por módulos según el patrón de diseño abordado. Cada resolución incluye su código fuente, diagrama UML de clases y evidencia de ejecución.
 
 ```text
-📦 Ejercitaciones
+📂 Ejercitaciones
 ┣ 📂 2-Singleton
 ┃ ┣ 📂 2.E.1
 ┃ ┗ 📂 2.E.2
