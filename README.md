@@ -1,6 +1,6 @@
 # **Diseño de Software - Ejercitaciones**
 
-## Repositorio de prácticas y resoluciones para la cátedra de **Diseño de Software (ITU)**. 
+## Repositorio de prácticas y resoluciones de **Patrones de Diseño ITU**. 
 
 El objetivo de este repositorio es documentar la implementación práctica de patrones de diseño orientados a objetos (Creacionales y de Comportamiento) aplicados en el lenguaje Java, garantizando buenas prácticas, principios SOLID y justificación arquitectónica.
 
