@@ -37,4 +37,4 @@ public class ConfiguracionApp {
 
 ## Evidencia de Ejecución
 <img width="1300" height="245" alt="imagen" src="https://github.com/user-attachments/assets/a13803f0-5c8e-4cef-aec0-62c0da24f7e7" />
-.png)
+
