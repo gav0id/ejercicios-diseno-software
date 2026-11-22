@@ -66,7 +66,7 @@ public class ModuloReportes {
 
 //-----
 
-public class Main {
+```public class Main {
 
     public static void main(String[] args) {
         ConfiguracionApp a = ConfiguracionApp.obtenerInstancia();
