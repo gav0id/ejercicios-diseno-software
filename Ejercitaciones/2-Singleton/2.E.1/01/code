@@ -1,4 +1,4 @@
-public class ConfiguracionApp {
+```public class ConfiguracionApp {
         private static ConfiguracionApp instancia;
 
         private String[] claves;
@@ -78,4 +78,4 @@ public class Main {
 
         System.out.println("Clave inexistente: " + a.obtener("colorTema"));
     }
-}
+}```
