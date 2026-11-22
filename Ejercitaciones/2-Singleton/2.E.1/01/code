@@ -1,2 +1,81 @@
+public class ConfiguracionApp {
+        private static ConfiguracionApp instancia;
+
+        private String[] claves;
+        private String[] valores;
+        private int cantidad;
+
+        private ConfiguracionApp() {
+            claves = new String[10];
+            valores = new String[10];
+            cantidad = 0;
+            cargarParametros();
+        }
+
+        private void cargarParametros() {
+            agregar("idioma", "es");
+            agregar("version", "1.0");
+            agregar("modoDepuracion", "true");
+            agregar("zonaHoraria", "America/Argentina/Mendoza");
+        }
+
+        private void agregar(String clave, String valor) {
+            if (cantidad < claves.length) {
+                claves[cantidad] = clave;
+                valores[cantidad] = valor;
+                cantidad++;
+            }
+        }
+
+        public static ConfiguracionApp obtenerInstancia() {
+            if (instancia == null) {
+                instancia = new ConfiguracionApp();
+            }
+            return instancia;
+        }
+
+        public String obtener(String clave) {
+            for (int i = 0; i < cantidad; i++) {
+                if (claves[i].equals(clave)) {
+                    return valores[i];
+                }
+            }
+            return null;
+        }
+}
+
 //-----
+
+public class ModuloAutenticacion {
+
+    public void mostrarIdioma() {
+        ConfiguracionApp config = ConfiguracionApp.obtenerInstancia();
+        System.out.println("Autenticacion - idioma: " + config.obtener("idioma"));
+    }
+}
+
 //-----
+
+public class ModuloReportes {
+
+    public void mostrarZonaHoraria() {
+        ConfiguracionApp config = ConfiguracionApp.obtenerInstancia();
+        System.out.println("Reportes - zona horaria: " + config.obtener("zonaHoraria"));
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        ConfiguracionApp a = ConfiguracionApp.obtenerInstancia();
+        ConfiguracionApp b = ConfiguracionApp.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        new ModuloAutenticacion().mostrarIdioma();
+        new ModuloReportes().mostrarZonaHoraria();
+
+        System.out.println("Clave inexistente: " + a.obtener("colorTema"));
+    }
+}
