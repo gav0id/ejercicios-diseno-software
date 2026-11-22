@@ -9,7 +9,8 @@
 Se implementó el patrón **Singleton** en la clase `ConfiguracionApp` para garantizar que los parámetros clave-valor se carguen en memoria una única vez durante todo el ciclo de vida del sistema. Al restringir la instanciación mediante un constructor privado y centralizar el acceso a través del método estático `obtenerInstancia()`, se evita el desperdicio de recursos de E/S y se asegura que todos los módulos de la aplicación lean exactamente la misma configuración consistente.
 
 ## Evidencia de Diseño (UML)
-![Diagrama de Clases UML](diagrama_uml.png)
+<img width="541" height="307" alt="{ED10C3CA-77C3-48C5-AB61-73E84211C6B4}" src="https://github.com/user-attachments/assets/50e16f3c-f445-4a02-ba48-ccb5671db918" />
+
 
 ## Fragmento de Código Clave
 ```java
