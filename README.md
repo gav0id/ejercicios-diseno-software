@@ -29,4 +29,4 @@ Los ejercicios están organizados por módulos según el patrón de diseño abor
 ---
 
 ## EGI
- **[Enlace al Repositorio de la EGI]([(https://github.com/gav0id/egi-diseno-software)])**
+**[Enlace al Repositorio de la EGI](https://github.com/gav0id/egi-diseno-software)**
