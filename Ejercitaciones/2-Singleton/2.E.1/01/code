@@ -81,3 +81,25 @@ public class Main {
     }
 }
 ```
+```java
+public class ConfiguracionApp {
+    private static ConfiguracionApp instancia;
+    private String[] claves;
+    private String[] valores;
+    private int cantidad;
+
+    private ConfiguracionApp() {
+        claves = new String[10];
+        valores = new String[10];
+        cantidad = 0;
+        cargarParametros();
+    }
+
+    public static ConfiguracionApp obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ConfiguracionApp();
+        }
+        return instancia;
+    }
+}
+```
