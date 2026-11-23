@@ -1,47 +1,48 @@
+```java
 public class ConfiguracionApp {
-        private static ConfiguracionApp instancia;
+    private static ConfiguracionApp instancia;
 
-        private String[] claves;
-        private String[] valores;
-        private int cantidad;
+    private String[] claves;
+    private String[] valores;
+    private int cantidad;
 
-        private ConfiguracionApp() {
-            claves = new String[10];
-            valores = new String[10];
-            cantidad = 0;
-            cargarParametros();
+    private ConfiguracionApp() {
+        claves = new String[10];
+        valores = new String[10];
+        cantidad = 0;
+        cargarParametros();
+    }
+
+    private void cargarParametros() {
+        agregar("idioma", "es");
+        agregar("version", "1.0");
+        agregar("modoDepuracion", "true");
+        agregar("zonaHoraria", "America/Argentina/Mendoza");
+    }
+
+    private void agregar(String clave, String valor) {
+        if (cantidad < claves.length) {
+            claves[cantidad] = clave;
+            valores[cantidad] = valor;
+            cantidad++;
         }
+    }
 
-        private void cargarParametros() {
-            agregar("idioma", "es");
-            agregar("version", "1.0");
-            agregar("modoDepuracion", "true");
-            agregar("zonaHoraria", "America/Argentina/Mendoza");
+    public static ConfiguracionApp obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ConfiguracionApp();
         }
+        return instancia;
+    }
 
-        private void agregar(String clave, String valor) {
-            if (cantidad < claves.length) {
-                claves[cantidad] = clave;
-                valores[cantidad] = valor;
-                cantidad++;
+    public String obtener(String clave) {
+        for (int i = 0; i < cantidad; i++) {
+            if (claves[i].equals(clave)) {
+                return valores[i];
             }
         }
-
-        public static ConfiguracionApp obtenerInstancia() {
-            if (instancia == null) {
-                instancia = new ConfiguracionApp();
-            }
-            return instancia;
-        }
-
-        public String obtener(String clave) {
-            for (int i = 0; i < cantidad; i++) {
-                if (claves[i].equals(clave)) {
-                    return valores[i];
-                }
-            }
-            return null;
-        }
+        return null;
+    }
 }
 
 //-----
@@ -79,4 +80,4 @@ public class Main {
         System.out.println("Clave inexistente: " + a.obtener("colorTema"));
     }
 }
-
+```
