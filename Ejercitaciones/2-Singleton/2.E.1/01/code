@@ -1,3 +1,4 @@
+```java
 ```public class ConfiguracionApp {
         private static ConfiguracionApp instancia;
 
@@ -43,9 +44,9 @@
             return null;
         }
 }
-
+```
 //-----
-
+```java
 public class ModuloAutenticacion {
 
     public void mostrarIdioma() {
@@ -53,9 +54,9 @@ public class ModuloAutenticacion {
         System.out.println("Autenticacion - idioma: " + config.obtener("idioma"));
     }
 }
-
+```
 //-----
-
+```java
 public class ModuloReportes {
 
     public void mostrarZonaHoraria() {
@@ -63,10 +64,10 @@ public class ModuloReportes {
         System.out.println("Reportes - zona horaria: " + config.obtener("zonaHoraria"));
     }
 }
-
+```
 //-----
-
-```public class Main {
+```java
+public class Main {
 
     public static void main(String[] args) {
         ConfiguracionApp a = ConfiguracionApp.obtenerInstancia();
