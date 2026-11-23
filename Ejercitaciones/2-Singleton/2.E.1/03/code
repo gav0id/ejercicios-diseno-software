@@ -1,2 +1,126 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Logger {
+
+    private static Logger instancia;
+
+    private static final DateTimeFormatter FORMATO =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private Logger() {
+        historial = new String[10];
+        cantidadHistorial = 0;
+    }
+
+    public static Logger obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new Logger();
+        }
+        return instancia;
+    }
+
+    public synchronized void registrar(NivelLog nivel, String mensaje) {
+        String marca = LocalDateTime.now().format(FORMATO);
+        String linea = "[" + marca + "] [" + nivel + "] " + mensaje;
+        System.out.println(linea);
+        guardarEnHistorial(linea);
+    }
+
+    public static void info(String mensaje) {
+        obtenerInstancia().registrar(NivelLog.INFO, mensaje);
+    }
+
+    public static void warning(String mensaje) {
+        obtenerInstancia().registrar(NivelLog.WARNING, mensaje);
+    }
+
+    public static void error(String mensaje) {
+        obtenerInstancia().registrar(NivelLog.ERROR, mensaje);
+    }
+
+    private void guardarEnHistorial(String linea) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = linea;
+        cantidadHistorial++;
+    }
+
+    public void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " registros):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
+
 //-----
+
+public enum NivelLog {
+    INFO,
+    WARNING,
+    ERROR
+}
+
 //-----
+
+public class ModuloUsuarios {
+
+    public void registrarUsuario(String nombre) {
+        if (nombre.isEmpty()) {
+            Logger.error("Nombre vacio, no se registra el usuario");
+            return;
+        }
+        Logger.info("Usuario registrado: " + nombre);
+    }
+}
+
+//-----
+
+public class ModuloPagos {
+
+    public void procesarPago(double monto) {
+        Logger log = Logger.obtenerInstancia();
+        log.registrar(NivelLog.INFO, "Iniciando pago de $" + monto);
+
+        if (monto <= 0) {
+            log.registrar(NivelLog.ERROR, "Monto invalido: " + monto);
+            return;
+        }
+        if (monto > 100000) {
+            log.registrar(NivelLog.WARNING, "Monto alto: " + monto);
+        }
+        log.registrar(NivelLog.INFO, "Pago procesado");
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        Logger a = Logger.obtenerInstancia();
+        Logger b = Logger.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        ModuloPagos pagos = new ModuloPagos();
+        ModuloUsuarios usuarios = new ModuloUsuarios();
+
+        usuarios.registrarUsuario("Ana");
+        pagos.procesarPago(2500);
+        pagos.procesarPago(150000);
+        pagos.procesarPago(-10);
+        usuarios.registrarUsuario("");
+        usuarios.registrarUsuario("Luis");
+        pagos.procesarPago(500);
+
+        a.mostrarHistorial();
+    }
+}
