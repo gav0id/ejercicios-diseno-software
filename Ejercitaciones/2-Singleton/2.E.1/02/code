@@ -1,2 +1,147 @@
+public class GestorConexion {
+
+    private static GestorConexion instancia;
+
+    private boolean conectada;
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private GestorConexion() {
+        conectada = false;
+        historial = new String[5];
+        cantidadHistorial = 0;
+    }
+
+    public static GestorConexion obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new GestorConexion();
+        }
+        return instancia;
+    }
+
+    public void conectar() {
+        if (conectada) {
+            System.out.println("La conexion ya esta abierta.");
+        } else {
+            conectada = true;
+            System.out.println("Conexion abierta.");
+        }
+    }
+
+    public void desconectar() {
+        if (conectada) {
+            conectada = false;
+            System.out.println("Conexion cerrada.");
+        } else {
+            System.out.println("La conexion ya estaba cerrada.");
+        }
+    }
+
+    public boolean estaConectada() {
+        return conectada;
+    }
+
+    public String ejecutarConsulta(String sql) {
+        if (!conectada) {
+            System.out.println("Error: no hay conexion abierta.");
+            return null;
+        }
+        registrarOperacion("CONSULTA: " + sql);
+        return "Resultado de: " + sql;
+    }
+
+    public int ejecutarActualizacion(String sql) {
+        if (!conectada) {
+            System.out.println("Error: no hay conexion abierta.");
+            return -1;
+        }
+        registrarOperacion("ACTUALIZACION: " + sql);
+        return 1;
+    }
+
+    private void registrarOperacion(String operacion) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = operacion;
+        cantidadHistorial++;
+    }
+
+    public void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " operaciones):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
+
 //-----
+
+public class ModuloClientes {
+
+    public void listarClientes() {
+        GestorConexion gestor = GestorConexion.obtenerInstancia();
+        String resultado = gestor.ejecutarConsulta("SELECT * FROM clientes");
+        System.out.println("Clientes -> " + resultado);
+    }
+
+    public void agregarCliente(String nombre) {
+        GestorConexion gestor = GestorConexion.obtenerInstancia();
+        int filas = gestor.ejecutarActualizacion("INSERT INTO clientes VALUES ('" + nombre + "')");
+        System.out.println("Clientes -> filas afectadas: " + filas);
+    }
+
+    public void cerrarConexion() {
+        GestorConexion.obtenerInstancia().desconectar();
+    }
+}
+
 //-----
+
+public class ModuloPedidos {
+
+    public void listarPedidos() {
+        GestorConexion gestor = GestorConexion.obtenerInstancia();
+        String resultado = gestor.ejecutarConsulta("SELECT * FROM pedidos");
+        System.out.println("Pedidos -> " + resultado);
+    }
+
+    public void registrarPedido(String producto) {
+        GestorConexion gestor = GestorConexion.obtenerInstancia();
+        int filas = gestor.ejecutarActualizacion("INSERT INTO pedidos VALUES ('" + producto + "')");
+        System.out.println("Pedidos -> filas afectadas: " + filas);
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        GestorConexion a = GestorConexion.obtenerInstancia();
+        GestorConexion b = GestorConexion.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        ModuloClientes clientes = new ModuloClientes();
+        ModuloPedidos pedidos = new ModuloPedidos();
+
+        clientes.listarClientes();
+
+        a.conectar();
+        clientes.listarClientes();
+        clientes.agregarCliente("Ana");
+        pedidos.listarPedidos();
+        pedidos.registrarPedido("Teclado");
+        pedidos.registrarPedido("Mouse");
+        pedidos.registrarPedido("Monitor");
+        clientes.agregarCliente("Luis");
+
+        a.mostrarHistorial();
+
+        clientes.cerrarConexion();
+        pedidos.listarPedidos();
+    }
+}
