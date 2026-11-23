@@ -9,7 +9,7 @@
 Se implementó el patrón **Singleton** en la clase `Logger` para canalizar toda la escritura de eventos a través de un único punto de control. Al restringir la instanciación mediante un constructor privado, exponer el acceso global con `obtenerInstancia()` (y métodos estáticos de conveniencia) y sincronizar el método `registrar()`, se evitan bloqueos de concurrencia y corrupción de datos al escribir sobre el mismo recurso compartido.
 
 ## Evidencia de Diseño (UML)
-
+<img width="642" height="383" alt="{13E1E6EE-4C2C-42CE-9523-104BCBD136A7}" src="https://github.com/user-attachments/assets/03cb7f63-bf8e-47bf-a0be-1b9647524445" />
 
 ## Fragmento de Código Clave
 ```java
