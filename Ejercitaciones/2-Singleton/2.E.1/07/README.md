@@ -9,7 +9,7 @@
 Se implementó el patrón **Singleton** en la clase `ColaImpresion` para centralizar la gestión de trabajos de impresión en una única instancia compartida. Al encapsular la estructura de cola dentro del Singleton, restringir el constructor y sincronizar (`synchronized`) tanto `obtenerInstancia()` como las operaciones de encolado y desencolado, se previenen condiciones de carrera, pérdida de documentos o duplicación de tareas ante peticiones concurrentes.
 
 ## Evidencia de Diseño (UML)
-![Diagrama de Clases UML](diagrama_uml.png)
+<img width="647" height="420" alt="{E464EA1A-3C58-4114-8F9E-6C0B97F25031}" src="https://github.com/user-attachments/assets/ca6b7c9e-4069-4776-bf74-a69b9c91af19" />
 
 ## Fragmento de Código Clave
 ```java
