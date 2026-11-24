@@ -1,22 +1,161 @@
+public class ConfiguracionBiblioteca {
 
+    private static ConfiguracionBiblioteca instancia;
 
+    private String nombre;
+    private int maxLibrosPorSocio;
+    private int plazoDevolucionDias;
+
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private ConfiguracionBiblioteca() {
+        nombre = "Biblioteca Central";
+        maxLibrosPorSocio = 3;
+        plazoDevolucionDias = 14;
+        historial = new String[5];
+        cantidadHistorial = 0;
+    }
+
+    public static ConfiguracionBiblioteca obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ConfiguracionBiblioteca();
+        }
+        return instancia;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public int getMaxLibrosPorSocio() {
+        return maxLibrosPorSocio;
+    }
+
+    public int getPlazoDevolucionDias() {
+        return plazoDevolucionDias;
+    }
+
+    public boolean setNombre(String nuevoNombre) {
+        if (nuevoNombre == null || nuevoNombre.trim().isEmpty()) {
+            return false;
+        }
+        registrar("nombre: " + nombre + " -> " + nuevoNombre.trim());
+        nombre = nuevoNombre.trim();
+        return true;
+    }
+
+    public boolean setMaxLibrosPorSocio(int nuevoMax) {
+        if (nuevoMax <= 0) {
+            return false;
+        }
+        registrar("maxLibrosPorSocio: " + maxLibrosPorSocio + " -> " + nuevoMax);
+        maxLibrosPorSocio = nuevoMax;
+        return true;
+    }
+
+    public boolean setPlazoDevolucionDias(int nuevoPlazo) {
+        if (nuevoPlazo <= 0) {
+            return false;
+        }
+        registrar("plazoDevolucionDias: " + plazoDevolucionDias + " -> " + nuevoPlazo);
+        plazoDevolucionDias = nuevoPlazo;
+        return true;
+    }
+
+    private void registrar(String cambio) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = cambio;
+        cantidadHistorial++;
+    }
+
+    public void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " cambios):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
 
 //-----
 
+public class ModuloPrestamos {
 
+    private final ConfiguracionBiblioteca config;
+
+    public ModuloPrestamos() {
+        config = ConfiguracionBiblioteca.obtenerInstancia();
+    }
+
+    public ConfiguracionBiblioteca getConfiguracion() {
+        return config;
+    }
+
+    public void modificarPlazo(int dias) {
+        if (config.setPlazoDevolucionDias(dias)) {
+            System.out.println("Prestamos -> plazo actualizado a " + dias + " dias");
+        } else {
+            System.out.println("Prestamos -> plazo rechazado (debe ser mayor a cero)");
+        }
+    }
+
+    public void mostrarReglas() {
+        System.out.println("Prestamos -> " + config.getNombre() + ": maximo "
+                + config.getMaxLibrosPorSocio() + " libros por socio, devolucion en "
+                + config.getPlazoDevolucionDias() + " dias");
+    }
+}
 
 //-----
 
+public class ModuloConsultas {
 
+    private final ConfiguracionBiblioteca config;
+
+    public ModuloConsultas() {
+        config = ConfiguracionBiblioteca.obtenerInstancia();
+    }
+
+    public ConfiguracionBiblioteca getConfiguracion() {
+        return config;
+    }
+
+    public void modificarNombre(String nombre) {
+        if (config.setNombre(nombre)) {
+            System.out.println("Consultas -> nombre actualizado a " + config.getNombre());
+        } else {
+            System.out.println("Consultas -> nombre rechazado (vacio)");
+        }
+    }
+
+    public void mostrarInfo() {
+        System.out.println("Consultas -> " + config.getNombre() + ": maximo "
+                + config.getMaxLibrosPorSocio() + " libros por socio, devolucion en "
+                + config.getPlazoDevolucionDias() + " dias");
+    }
+}
 
 //-----
 
+public class Main {
 
+    public static void main(String[] args) {
+        ModuloPrestamos prestamos = new ModuloPrestamos();
+        ModuloConsultas consultas = new ModuloConsultas();
 
-//-----
+        System.out.println("Mismo objeto: " + (prestamos.getConfiguracion() == consultas.getConfiguracion()));
 
+        prestamos.modificarPlazo(21);
+        consultas.modificarNombre("Biblioteca Popular");
+        consultas.modificarNombre("   ");
 
-
-//-----
-
-
+        prestamos.mostrarReglas();
+        consultas.mostrarInfo();
+        prestamos.getConfiguracion().mostrarHistorial();
+    }
+}
