@@ -1,4 +1,4 @@
-# Ejercicio 1 (Parte 2): Configuración General de una Biblioteca
+# Ejercicio 1: Configuración General de una Biblioteca
 
 ## Explicación del Proyecto y Lógica
 **Descripción:** Aplicación de gestión para una biblioteca donde los módulos de préstamos (`ModuloPrestamos`) y consultas (`ModuloConsultas`) comparten y modifican una misma configuración institucional (nombre, máximo de libros por socio y plazo de devolución en días), manteniendo un historial unificado de cambios.
