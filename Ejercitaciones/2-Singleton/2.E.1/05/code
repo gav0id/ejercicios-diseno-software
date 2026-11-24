@@ -1,2 +1,171 @@
+public final class ControladorHardware {
+
+    private static ControladorHardware instancia;
+
+    private final String puerto;
+    private EstadoDispositivo estado;
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private ControladorHardware() {
+        puerto = "COM3";
+        estado = EstadoDispositivo.LIBRE;
+        historial = new String[5];
+        cantidadHistorial = 0;
+    }
+
+    public static synchronized ControladorHardware obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ControladorHardware();
+        }
+        return instancia;
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException("El controlador no se puede duplicar");
+    }
+
+    public synchronized boolean estaDisponible() {
+        return estado == EstadoDispositivo.LIBRE;
+    }
+
+    public synchronized EstadoDispositivo leerEstado() {
+        return estado;
+    }
+
+    public synchronized String enviarComando(String origen, String comando) {
+        if (estado == EstadoDispositivo.FALLA) {
+            return "RECHAZADO: el dispositivo esta en falla (" + origen + ": " + comando + ")";
+        }
+        if (estado == EstadoDispositivo.OCUPADO) {
+            return "RECHAZADO: el dispositivo esta ocupado (" + origen + ": " + comando + ")";
+        }
+        estado = EstadoDispositivo.OCUPADO;
+        registrar(origen + " -> " + comando);
+        return "ACEPTADO: " + origen + " envio '" + comando + "' por " + puerto;
+    }
+
+    public synchronized String enviarYLiberar(String origen, String comando) {
+        boolean estabaLibre = (estado == EstadoDispositivo.LIBRE);
+        String respuesta = enviarComando(origen, comando);
+        if (estabaLibre) {
+            estado = EstadoDispositivo.LIBRE;
+        }
+        return respuesta;
+    }
+
+    public synchronized String finalizarComando() {
+        if (estado == EstadoDispositivo.OCUPADO) {
+            estado = EstadoDispositivo.LIBRE;
+            return "Comando finalizado, dispositivo libre.";
+        }
+        return "No hay comando en curso.";
+    }
+
+    public synchronized void simularFalla() {
+        estado = EstadoDispositivo.FALLA;
+    }
+
+    public synchronized void reiniciar() {
+        estado = EstadoDispositivo.LIBRE;
+    }
+
+    private void registrar(String comando) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = comando;
+        cantidadHistorial++;
+    }
+
+    public synchronized void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " comandos):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
+
 //-----
+
+public enum EstadoDispositivo {
+    LIBRE,
+    OCUPADO,
+    FALLA
+}
+
+//-----
+
+public class ModuloBrazo {
+
+    public void moverBrazo(String posicion) {
+        ControladorHardware controlador = ControladorHardware.obtenerInstancia();
+        String respuesta = controlador.enviarComando("Brazo", "MOVER " + posicion);
+        System.out.println("Brazo -> " + respuesta);
+    }
+}
+
+//-----
+
+public class ModuloSensores {
+
+    public void consultarEstado() {
+        ControladorHardware controlador = ControladorHardware.obtenerInstancia();
+        System.out.println("Sensores -> estado del dispositivo: " + controlador.leerEstado()
+                + " (disponible: " + controlador.estaDisponible() + ")");
+    }
+
+    public void leerTemperatura() {
+        ControladorHardware controlador = ControladorHardware.obtenerInstancia();
+        String respuesta = controlador.enviarYLiberar("Sensores", "LEER_TEMPERATURA");
+        System.out.println("Sensores -> " + respuesta);
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        ControladorHardware a = ControladorHardware.obtenerInstancia();
+        ControladorHardware b = ControladorHardware.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        try {
+            a.clone();
+        } catch (CloneNotSupportedException e) {
+            System.out.println("Duplicacion bloqueada: " + e.getMessage());
+        }
+
+        ModuloBrazo brazo = new ModuloBrazo();
+        ModuloSensores sensores = new ModuloSensores();
+
+        sensores.consultarEstado();
+        brazo.moverBrazo("90 grados");
+        sensores.consultarEstado();
+        sensores.leerTemperatura();
+
+        System.out.println(a.finalizarComando());
+        sensores.leerTemperatura();
+        System.out.println(a.finalizarComando());
+
+        a.simularFalla();
+        brazo.moverBrazo("0 grados");
+        a.reiniciar();
+
+        brazo.moverBrazo("45 grados");
+        a.finalizarComando();
+        brazo.moverBrazo("180 grados");
+        a.finalizarComando();
+        sensores.leerTemperatura();
+        sensores.leerTemperatura();
+
+        a.mostrarHistorial();
+    }
+}
+
 //-----
