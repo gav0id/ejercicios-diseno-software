@@ -9,6 +9,7 @@
 Se implementó el patrón **Singleton** en `ConfiguracionBiblioteca` para centralizar los parámetros globales de la institución y evitar que cada módulo cree su propia copia desactualizada. Al restringir la instanciación con un constructor privado, exponer el acceso único mediante `obtenerInstancia()` y validar cada modificación en los setters, se garantiza que ambos módulos operen siempre sobre exactamente el mismo objeto en memoria.
 
 ## Evidencia de Diseño (UML)
+<img width="562" height="504" alt="01 drawio" src="https://github.com/user-attachments/assets/0f3bf1cc-8bd5-4f6e-826a-f4e158f1ae52" />
 
 ## Fragmento de Código Clave
 ```java
