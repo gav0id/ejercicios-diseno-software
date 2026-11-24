@@ -1,22 +1,180 @@
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
+public final class Actividad {
 
+    private static final DateTimeFormatter FORMATO =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private final LocalDateTime momento;
+    private final String sector;
+    private final String descripcion;
+
+    public Actividad(String sector, String descripcion) {
+        this.momento = LocalDateTime.now();
+        this.sector = sector;
+        this.descripcion = descripcion;
+    }
+
+    public LocalDate getFecha() {
+        return momento.toLocalDate();
+    }
+
+    public LocalTime getHora() {
+        return momento.toLocalTime();
+    }
+
+    public String getSector() {
+        return sector;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + momento.format(FORMATO) + "] [" + sector + "] " + descripcion;
+    }
+}
 
 //-----
 
+public class RegistroActividades {
 
+    private static RegistroActividades instancia;
+
+    private Actividad[] actividades;
+    private int cantidad;
+
+    private RegistroActividades() {
+        actividades = new Actividad[3];
+        cantidad = 0;
+    }
+
+    public static RegistroActividades obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new RegistroActividades();
+        }
+        return instancia;
+    }
+
+    public boolean registrar(String sector, String descripcion) {
+        if (sector == null || sector.trim().isEmpty()
+                || descripcion == null || descripcion.trim().isEmpty()) {
+            return false;
+        }
+        if (cantidad == actividades.length) {
+            agrandar();
+        }
+        actividades[cantidad] = new Actividad(sector.trim(), descripcion.trim());
+        cantidad++;
+        return true;
+    }
+
+    private void agrandar() {
+        Actividad[] nuevo = new Actividad[actividades.length * 2];
+        for (int i = 0; i < cantidad; i++) {
+            nuevo[i] = actividades[i];
+        }
+        actividades = nuevo;
+    }
+
+    public int cantidadEventos() {
+        return cantidad;
+    }
+
+    public Actividad[] obtenerHistorial() {
+        Actividad[] copia = new Actividad[cantidad];
+        for (int i = 0; i < cantidad; i++) {
+            copia[i] = actividades[i];
+        }
+        return copia;
+    }
+
+    public Actividad[] filtrarPorSector(String sector) {
+        int coincidencias = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (actividades[i].getSector().equalsIgnoreCase(sector)) {
+                coincidencias++;
+            }
+        }
+        Actividad[] resultado = new Actividad[coincidencias];
+        int posicion = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (actividades[i].getSector().equalsIgnoreCase(sector)) {
+                resultado[posicion] = actividades[i];
+                posicion++;
+            }
+        }
+        return resultado;
+    }
+}
 
 //-----
 
+public class SectorPrestamos {
 
+    private static final String NOMBRE = "Prestamos";
+
+    public void prestar(String socio, String libro) {
+        RegistroActividades.obtenerInstancia()
+                .registrar(NOMBRE, "Prestamo de '" + libro + "' a " + socio);
+    }
+}
 
 //-----
 
+public class SectorDevoluciones {
 
+    private static final String NOMBRE = "Devoluciones";
+
+    public void devolver(String socio, String libro) {
+        RegistroActividades.obtenerInstancia()
+                .registrar(NOMBRE, "Devolucion de '" + libro + "' por " + socio);
+    }
+}
 
 //-----
 
+public class SectorAtencionSocios {
 
+    private static final String NOMBRE = "Atencion a socios";
+
+    public void atender(String socio, String motivo) {
+        RegistroActividades.obtenerInstancia()
+                .registrar(NOMBRE, motivo + ": " + socio);
+    }
+}
 
 //-----
 
+public class Main {
 
+    public static void main(String[] args) {
+        RegistroActividades a = RegistroActividades.obtenerInstancia();
+        RegistroActividades b = RegistroActividades.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        SectorPrestamos prestamos = new SectorPrestamos();
+        SectorDevoluciones devoluciones = new SectorDevoluciones();
+        SectorAtencionSocios atencion = new SectorAtencionSocios();
+
+        prestamos.prestar("Ana", "Another");
+        devoluciones.devolver("Luis", "Adabana");
+        atencion.atender("Marta", "Flores del Mal");
+        prestamos.prestar("Luis", "Rastros de Sangre");
+        devoluciones.devolver("Ana", "Another");
+
+        System.out.println("Total de eventos: " + a.cantidadEventos());
+        for (Actividad act : a.obtenerHistorial()) {
+            System.out.println(act);
+        }
+        System.out.println("Solo Prestamos");
+        for (Actividad act : a.filtrarPorSector("Prestamos")) {
+            System.out.println(act);
+        }
+    }
+}
