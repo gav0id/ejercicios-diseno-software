@@ -1,2 +1,201 @@
+public class GestorTemas {
+
+    private static GestorTemas instancia;
+
+    private final String[] elementos = {"fondo", "texto", "boton"};
+    private String[][] paletas;
+    private Tema temaActual;
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private GestorTemas() {
+        paletas = new String[Tema.values().length][];
+        paletas[Tema.CLARO.ordinal()] = new String[]{"#FFFFFF", "#000000", "#4A90E2"};
+        paletas[Tema.OSCURO.ordinal()] = new String[]{"#121212", "#EEEEEE", "#BB86FC"};
+        temaActual = Tema.CLARO;
+        historial = new String[5];
+        cantidadHistorial = 0;
+    }
+
+    public static synchronized GestorTemas obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new GestorTemas();
+        }
+        return instancia;
+    }
+
+    private int buscarElemento(String elemento) {
+        if (elemento == null) {
+            return -1;
+        }
+        for (int i = 0; i < elementos.length; i++) {
+            if (elementos[i].equals(elemento)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean esColorValido(String color) {
+        if (color == null || color.length() != 7 || color.charAt(0) != '#') {
+            return false;
+        }
+        for (int i = 1; i < 7; i++) {
+            if (Character.digit(color.charAt(i), 16) == -1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public synchronized Tema getTemaActual() {
+        return temaActual;
+    }
+
+    public synchronized String leerColor(String elemento) {
+        int posicion = buscarElemento(elemento);
+        if (posicion == -1) {
+            return null;
+        }
+        return paletas[temaActual.ordinal()][posicion];
+    }
+
+    public synchronized boolean personalizarColor(String elemento, String color) {
+        int posicion = buscarElemento(elemento);
+        if (posicion == -1 || !esColorValido(color)) {
+            return false;
+        }
+        paletas[temaActual.ordinal()][posicion] = color.toUpperCase();
+        return true;
+    }
+
+    public synchronized boolean cambiarTema(Tema nuevo) {
+        if (nuevo == null || nuevo == temaActual) {
+            return false;
+        }
+        registrar(temaActual + " -> " + nuevo);
+        temaActual = nuevo;
+        return true;
+    }
+
+    public synchronized Tema alternarTema() {
+        Tema[] todos = Tema.values();
+        Tema siguiente = todos[(temaActual.ordinal() + 1) % todos.length];
+        cambiarTema(siguiente);
+        return siguiente;
+    }
+
+    private void registrar(String cambio) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = cambio;
+        cantidadHistorial++;
+    }
+
+    public synchronized void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " cambios):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
+
 //-----
+
+public enum Tema {
+    CLARO,
+    OSCURO
+}
+
 //-----
+
+public class VistaConfiguracion {
+
+    public void dibujar() {
+        GestorTemas gestor = GestorTemas.obtenerInstancia();
+        System.out.println("Configuracion -> " + gestor.getTemaActual()
+                + " | fondo " + gestor.leerColor("fondo")
+                + " | texto " + gestor.leerColor("texto")
+                + " | boton " + gestor.leerColor("boton"));
+    }
+
+    public void elegirTema(Tema tema) {
+        boolean cambio = GestorTemas.obtenerInstancia().cambiarTema(tema);
+        if (cambio) {
+            System.out.println("Configuracion -> tema cambiado a " + tema);
+        } else {
+            System.out.println("Configuracion -> sin cambios (tema nulo o ya activo)");
+        }
+    }
+
+    public void personalizarColor(String elemento, String color) {
+        boolean ok = GestorTemas.obtenerInstancia().personalizarColor(elemento, color);
+        if (ok) {
+            System.out.println("Configuracion -> color de " + elemento + " actualizado a " + color);
+        } else {
+            System.out.println("Configuracion -> no se pudo cambiar el color (elemento o formato invalido)");
+        }
+    }
+}
+
+//-----
+
+public class VistaPrincipal {
+
+    public void dibujar() {
+        GestorTemas gestor = GestorTemas.obtenerInstancia();
+        System.out.println("Principal -> " + gestor.getTemaActual()
+                + " | fondo " + gestor.leerColor("fondo")
+                + " | texto " + gestor.leerColor("texto")
+                + " | boton " + gestor.leerColor("boton"));
+    }
+
+    public void presionarBotonTema() {
+        Tema nuevo = GestorTemas.obtenerInstancia().alternarTema();
+        System.out.println("Principal -> boton de tema presionado, ahora: " + nuevo);
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        GestorTemas a = GestorTemas.obtenerInstancia();
+        GestorTemas b = GestorTemas.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        VistaPrincipal principal = new VistaPrincipal();
+        VistaConfiguracion config = new VistaConfiguracion();
+
+        principal.dibujar();
+        config.dibujar();
+
+        config.elegirTema(Tema.OSCURO);
+        principal.dibujar();
+        config.dibujar();
+
+        config.elegirTema(Tema.OSCURO);
+        config.elegirTema(null);
+
+        config.personalizarColor("boton", "#FF0000");
+        config.personalizarColor("boton", "rojo");
+        config.personalizarColor("borde", "#FF0000");
+
+        principal.presionarBotonTema();
+        principal.dibujar();
+        principal.presionarBotonTema();
+        principal.dibujar();
+
+        a.alternarTema();
+        a.alternarTema();
+        a.alternarTema();
+        a.alternarTema();
+
+        a.mostrarHistorial();
+    }
+}
