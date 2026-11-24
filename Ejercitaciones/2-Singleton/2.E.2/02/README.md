@@ -9,6 +9,7 @@
 Se implementó el patrón **Singleton** en `RegistroActividades` para unificar la captura de eventos provenientes de los tres sectores en una única instancia con estado propio, evitando registros fragmentados o soluciones basadas únicamente en miembros estáticos. La colección interna privada se protege mediante copias defensivas en las consultas y objetos inmutables (`Actividad`), asegurando que el historial no pueda alterarse desde afuera.
 
 ## Evidencia de Diseño (UML)
+<img width="902" height="384" alt="02 drawio" src="https://github.com/user-attachments/assets/c8a81a24-41a3-4491-b66e-5413ae7b0eb2" />
 
 ## Fragmento de Código Clave
 ```java
