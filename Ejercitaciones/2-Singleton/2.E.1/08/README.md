@@ -9,6 +9,7 @@
 Se mantuvo el patrón **Singleton** en `PasarelaPagoReal` para garantizar que exista una única instancia operativa de la pasarela real durante todo el proceso. Sin embargo, para eliminar el acoplamiento fuerte y facilitar las pruebas unitarias, se aplicó el **Principio de Inversión de Dependencias (DIP)** mediante la interfaz `PasarelaPago` e **Inyección de Dependencias por constructor**, logrando que ninguna clase consumidora invoque llamadas globales estáticas en su interior.
 
 ## Evidencia de Diseño (UML)
+<img width="585" height="319" alt="{6F3B49C2-B735-4F46-9244-0B5AD635B711}" src="https://github.com/user-attachments/assets/544eb4a2-6db4-44b7-a42f-e45177c5dab1" />
 
 ## Fragmento de Código Clave
 ```java
