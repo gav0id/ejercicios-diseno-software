@@ -1,22 +1,128 @@
+public final class PasarelaPagoReal implements PasarelaPago {
 
+    private static PasarelaPagoReal instancia;
 
+    private String[] historial;
+    private int cantidadHistorial;
+
+    private PasarelaPagoReal() {
+        historial = new String[5];
+        cantidadHistorial = 0;
+    }
+
+    public static synchronized PasarelaPagoReal obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new PasarelaPagoReal();
+        }
+        return instancia;
+    }
+
+    @Override
+    public synchronized String procesarPago(String cliente, double monto) {
+        if (cliente == null || cliente.isEmpty()) {
+            return "RECHAZADO: cliente vacio";
+        }
+        if (monto <= 0) {
+            return "RECHAZADO: monto invalido (" + monto + ")";
+        }
+        registrar(cliente + " - $" + monto);
+        return "APROBADO: " + cliente + " pago $" + monto;
+    }
+
+    private void registrar(String pago) {
+        if (cantidadHistorial == historial.length) {
+            for (int i = 1; i < historial.length; i++) {
+                historial[i - 1] = historial[i];
+            }
+            cantidadHistorial--;
+        }
+        historial[cantidadHistorial] = pago;
+        cantidadHistorial++;
+    }
+
+    public synchronized void mostrarHistorial() {
+        System.out.println("Historial (" + cantidadHistorial + " pagos):");
+        for (int i = 0; i < cantidadHistorial; i++) {
+            System.out.println((i + 1) + ". " + historial[i]);
+        }
+    }
+}
 
 //-----
 
 
+public interface PasarelaPago {
+
+    String procesarPago(String cliente, double monto);
+}
 
 //-----
 
+public class PasarelaPagoFalsa implements PasarelaPago {
 
+    private String[] pedidos = new String[10];
+    private int cantidad = 0;
+
+    @Override
+    public String procesarPago(String cliente, double monto) {
+        if (cantidad < pedidos.length) {
+            pedidos[cantidad] = cliente + " - $" + monto;
+            cantidad++;
+        }
+        return "SIMULADO: " + cliente + " pago $" + monto;
+    }
+
+    public int cantidadLlamadas() {
+        return cantidad;
+    }
+}
 
 //-----
 
+public class ServicioCheckout {
 
+    private final PasarelaPago pasarela;
+
+    public ServicioCheckout(PasarelaPago pasarela) {
+        this.pasarela = pasarela;
+    }
+
+    public void cobrar(String cliente, double monto) {
+        System.out.println("Checkout -> " + pasarela.procesarPago(cliente, monto));
+    }
+}
 
 //-----
 
+public class ServicioSuscripciones {
 
+    private final PasarelaPago pasarela;
+
+    public ServicioSuscripciones(PasarelaPago pasarela) {
+        this.pasarela = pasarela;
+    }
+
+    public void renovar(String cliente, double monto) {
+        System.out.println("Suscripciones -> " + pasarela.procesarPago(cliente, monto));
+    }
+}
 
 //-----
 
+public class Main {
 
+    public static void main(String[] args) {
+        PasarelaPagoReal real = PasarelaPagoReal.obtenerInstancia();
+        ServicioCheckout checkout = new ServicioCheckout(real);
+        ServicioSuscripciones suscripciones = new ServicioSuscripciones(real);
+
+        checkout.cobrar("Ana", 1500);
+        suscripciones.renovar("Luis", 800);
+        checkout.cobrar("", 300);
+        real.mostrarHistorial();
+
+        PasarelaPagoFalsa falsa = new PasarelaPagoFalsa();
+        new ServicioCheckout(falsa).cobrar("Prueba", 100);
+        System.out.println("Llamadas a la falsa: " + falsa.cantidadLlamadas());
+    }
+}
