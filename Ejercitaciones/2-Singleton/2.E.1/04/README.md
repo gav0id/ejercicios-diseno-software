@@ -9,7 +9,7 @@
 Se implementó el patrón **Singleton** con inicialización diferida (*lazy initialization*) en la clase `ServicioCache` para garantizar que exista un único repositorio de caché compartido en toda la aplicación. Al encapsular la estructura de datos interna como privada, restringir el constructor y sincronizar tanto `obtenerInstancia()` como las operaciones de lectura y escritura, se optimiza el uso de memoria y se asegura que todos los módulos trabajen siempre sobre el mismo estado actualizado.
 
 ## Evidencia de Diseño (UML)
-
+<img width="515" height="414" alt="{A88FE69F-B5C1-456F-9860-43774586E4AA}" src="https://github.com/user-attachments/assets/365a2450-c45c-4a29-967c-b73bdcf81cba" />
 
 ## Fragmento de Código Clave
 ```java
