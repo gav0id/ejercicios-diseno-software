@@ -1,2 +1,173 @@
+public class ServicioCache {
+
+    private static ServicioCache instancia;
+
+    private String[] claves;
+    private String[] valores;
+    private int cantidad;
+
+    private ServicioCache() {
+        claves = new String[3];
+        valores = new String[3];
+        cantidad = 0;
+    }
+
+    public static synchronized ServicioCache obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ServicioCache();
+        }
+        return instancia;
+    }
+
+    private int buscarPosicion(String clave) {
+        if (clave == null) {
+            return -1;
+        }
+        for (int i = 0; i < cantidad; i++) {
+            if (claves[i].equals(clave)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void agrandar() {
+        String[] nuevasClaves = new String[claves.length * 2];
+        String[] nuevosValores = new String[valores.length * 2];
+        for (int i = 0; i < cantidad; i++) {
+            nuevasClaves[i] = claves[i];
+            nuevosValores[i] = valores[i];
+        }
+        claves = nuevasClaves;
+        valores = nuevosValores;
+    }
+
+    public synchronized boolean guardar(String clave, String valor) {
+        int posicion = buscarPosicion(clave);
+        if (posicion != -1) {
+            valores[posicion] = valor;
+            return true;
+        }
+        if (cantidad == claves.length) {
+            agrandar();
+        }
+        claves[cantidad] = clave;
+        valores[cantidad] = valor;
+        cantidad++;
+        return false;
+    }
+
+    public synchronized String recuperar(String clave) {
+        int posicion = buscarPosicion(clave);
+        if (posicion == -1) {
+            return null;
+        }
+        return valores[posicion];
+    }
+
+    public synchronized boolean existe(String clave) {
+        return buscarPosicion(clave) != -1;
+    }
+
+    public synchronized boolean eliminar(String clave) {
+        int posicion = buscarPosicion(clave);
+        if (posicion == -1) {
+            return false;
+        }
+        for (int i = posicion + 1; i < cantidad; i++) {
+            claves[i - 1] = claves[i];
+            valores[i - 1] = valores[i];
+        }
+        cantidad--;
+        claves[cantidad] = null;
+        valores[cantidad] = null;
+        return true;
+    }
+
+    public synchronized int cantidadElementos() {
+        return cantidad;
+    }
+
+    public synchronized int capacidad() {
+        return claves.length;
+    }
+
+    public synchronized void mostrarContenido() {
+        System.out.println("Contenido de la cache (" + cantidad + " elementos):");
+        for (int i = 0; i < cantidad; i++) {
+            System.out.println((i + 1) + ". " + claves[i] + " = " + valores[i]);
+        }
+    }
+}
+
 //-----
+
+public class ModuloSesiones {
+
+    public void iniciarSesion(String idUsuario) {
+        ServicioCache cache = ServicioCache.obtenerInstancia();
+        String perfil = cache.recuperar(idUsuario);
+        if (perfil == null) {
+            System.out.println("Sesiones -> " + idUsuario
+                    + " no esta en cache, habria que consultar al servidor principal");
+        } else {
+            System.out.println("Sesiones -> perfil desde cache: " + perfil);
+        }
+    }
+}
+
 //-----
+
+public class ModuloPerfiles {
+
+    public void guardarPerfil(String idUsuario, String perfil) {
+        ServicioCache cache = ServicioCache.obtenerInstancia();
+        boolean actualizado = cache.guardar(idUsuario, perfil);
+        if (actualizado) {
+            System.out.println("Perfiles -> actualizado: " + idUsuario);
+        } else {
+            System.out.println("Perfiles -> guardado nuevo: " + idUsuario);
+        }
+    }
+
+    public void eliminarPerfil(String idUsuario) {
+        ServicioCache cache = ServicioCache.obtenerInstancia();
+        if (cache.eliminar(idUsuario)) {
+            System.out.println("Perfiles -> eliminado: " + idUsuario);
+        } else {
+            System.out.println("Perfiles -> no existia: " + idUsuario);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        ServicioCache a = ServicioCache.obtenerInstancia();
+        ServicioCache b = ServicioCache.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+        System.out.println("Capacidad inicial: " + a.capacidad());
+
+        ModuloPerfiles perfiles = new ModuloPerfiles();
+        ModuloSesiones sesiones = new ModuloSesiones();
+
+        perfiles.guardarPerfil("u1", "Ana - Buenos Aires");
+        perfiles.guardarPerfil("u2", "Luis - Mendoza");
+        perfiles.guardarPerfil("u3", "Sofia - Cordoba");
+        System.out.println("Capacidad: " + a.capacidad() + ", elementos: " + a.cantidadElementos());
+
+        perfiles.guardarPerfil("u4", "Marta - Salta");
+        System.out.println("Capacidad: " + a.capacidad() + ", elementos: " + a.cantidadElementos());
+
+        sesiones.iniciarSesion("u2");
+        perfiles.guardarPerfil("u2", "Luis - San Rafael");
+        sesiones.iniciarSesion("u2");
+
+        perfiles.eliminarPerfil("u1");
+        sesiones.iniciarSesion("u1");
+
+        a.mostrarContenido();
+    }
+}
