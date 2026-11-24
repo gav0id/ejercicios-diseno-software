@@ -1,22 +1,159 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
+public final class RegistroAuditoria {
 
+    private static final DateTimeFormatter FORMATO =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
+    private final long secuencia;
+    private final LocalDateTime marcaTiempo;
+    private final String sesion;
+    private final String operador;
+    private final String accion;
+
+    RegistroAuditoria(long secuencia, LocalDateTime marcaTiempo,
+                      String sesion, String operador, String accion) {
+        this.secuencia = secuencia;
+        this.marcaTiempo = marcaTiempo;
+        this.sesion = sesion;
+        this.operador = operador;
+        this.accion = accion;
+    }
+
+    public long getSecuencia() { return secuencia; }
+    public LocalDateTime getMarcaTiempo() { return marcaTiempo; }
+    public String getSesion() { return sesion; }
+    public String getOperador() { return operador; }
+    public String getAccion() { return accion; }
+
+    @Override
+    public String toString() {
+        return "#" + secuencia + " [" + marcaTiempo.format(FORMATO) + "] sesion=" + sesion
+                + " operador=" + operador + " accion=" + accion;
+    }
+}
 
 //-----
 
+import java.time.LocalDateTime;
 
+public final class AuditorSeguridad {
+
+    private static volatile AuditorSeguridad instancia;
+
+    private final Object candado = new Object();
+
+    private RegistroAuditoria[] registros;
+    private int cantidad;
+    private long ultimaSecuencia;
+
+    private AuditorSeguridad() {
+        if (instancia != null) {
+            throw new IllegalStateException("Ya existe un auditor");
+        }
+        registros = new RegistroAuditoria[2];
+        cantidad = 0;
+        ultimaSecuencia = 0;
+    }
+
+    public static AuditorSeguridad obtenerInstancia() {
+        if (instancia == null) {
+            synchronized (AuditorSeguridad.class) {
+                if (instancia == null) {
+                    instancia = new AuditorSeguridad();
+                }
+            }
+        }
+        return instancia;
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException("El auditor no se puede duplicar");
+    }
+
+    public long registrar(String sesion, String operador, String accion) {
+        if (sesion == null || sesion.isEmpty() || operador == null || operador.isEmpty()
+                || accion == null || accion.isEmpty()) {
+            return -1;
+        }
+        synchronized (candado) {
+            if (cantidad == registros.length) {
+                agrandar();
+            }
+            ultimaSecuencia++;
+            registros[cantidad] = new RegistroAuditoria(
+                    ultimaSecuencia, LocalDateTime.now(), sesion, operador, accion);
+            cantidad++;
+            return ultimaSecuencia;
+        }
+    }
+
+    private void agrandar() {
+        RegistroAuditoria[] nuevo = new RegistroAuditoria[registros.length * 2];
+        for (int i = 0; i < cantidad; i++) {
+            nuevo[i] = registros[i];
+        }
+        registros = nuevo;
+    }
+
+    public int cantidadRegistros() {
+        synchronized (candado) {
+            return cantidad;
+        }
+    }
+
+    public RegistroAuditoria[] obtenerTraza() {
+        synchronized (candado) {
+            RegistroAuditoria[] copia = new RegistroAuditoria[cantidad];
+            for (int i = 0; i < cantidad; i++) {
+                copia[i] = registros[i];
+            }
+            return copia;
+        }
+    }
+}
 
 //-----
 
+public class ModuloTransferencias {
 
+    public void transferir(String sesion, String operador, double monto) {
+        AuditorSeguridad.obtenerInstancia()
+                .registrar(sesion, operador, "Transferencia de $" + monto);
+    }
+}
+
+//-----
+
+public class ModuloPrivilegios {
+
+    public void otorgarAdmin(String sesion, String operador, String destino) {
+        AuditorSeguridad.obtenerInstancia()
+                .registrar(sesion, operador, "Otorga privilegios de administrador a " + destino);
+    }
+}
 
 //-----
 
+public class Main {
 
+    public static void main(String[] args) {
+        AuditorSeguridad a = AuditorSeguridad.obtenerInstancia();
+        AuditorSeguridad b = AuditorSeguridad.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
 
-//-----
+        new ModuloTransferencias().transferir("S-01", "ana", 5000);
+        new ModuloPrivilegios().otorgarAdmin("S-02", "luis", "marta");
+        new ModuloTransferencias().transferir("S-01", "ana", 120);
 
+        System.out.println("Total de registros: " + a.cantidadRegistros());
+        for (RegistroAuditoria r : a.obtenerTraza()) {
+            System.out.println(r);
+        }
+    }
+}
 
-
-//-----
 
 
