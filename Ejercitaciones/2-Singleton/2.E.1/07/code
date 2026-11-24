@@ -1,2 +1,176 @@
+public class ColaImpresion {
+
+    private static ColaImpresion instancia;
+
+    private Documento[] cola;
+    private int inicio;
+    private int fin;
+    private int cantidad;
+
+    private Documento[] espera;
+    private int cantidadEspera;
+
+    private ColaImpresion() {
+        cola = new Documento[3];
+        espera = new Documento[2];
+        inicio = 0;
+        fin = 0;
+        cantidad = 0;
+        cantidadEspera = 0;
+    }
+
+    public static synchronized ColaImpresion obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ColaImpresion();
+        }
+        return instancia;
+    }
+
+    public synchronized String encolar(Documento documento) {
+        if (documento == null) {
+            return "RECHAZADO: documento nulo";
+        }
+        if (cantidad < cola.length) {
+            cola[fin] = documento;
+            fin = (fin + 1) % cola.length;
+            cantidad++;
+            return "ENCOLADO: " + documento;
+        }
+        if (cantidadEspera < espera.length) {
+            espera[cantidadEspera] = documento;
+            cantidadEspera++;
+            return "EN ESPERA: " + documento + " (la cola esta llena)";
+        }
+        return "RECHAZADO: " + documento + " (cola y lista de espera llenas)";
+    }
+
+    public synchronized Documento desencolar() {
+        if (cantidad == 0) {
+            return null;
+        }
+        Documento documento = cola[inicio];
+        cola[inicio] = null;
+        inicio = (inicio + 1) % cola.length;
+        cantidad--;
+        promoverDeEspera();
+        return documento;
+    }
+
+    private void promoverDeEspera() {
+        if (cantidadEspera == 0) {
+            return;
+        }
+        Documento siguiente = espera[0];
+        for (int i = 1; i < cantidadEspera; i++) {
+            espera[i - 1] = espera[i];
+        }
+        cantidadEspera--;
+        espera[cantidadEspera] = null;
+
+        cola[fin] = siguiente;
+        fin = (fin + 1) % cola.length;
+        cantidad++;
+    }
+
+    public synchronized boolean imprimirSiguiente() {
+        Documento documento = desencolar();
+        if (documento == null) {
+            System.out.println("Impresora -> no hay documentos pendientes");
+            return false;
+        }
+        System.out.println("Impresora -> imprimiendo: " + documento);
+        return true;
+    }
+
+    public synchronized int imprimirTodos() {
+        int impresos = 0;
+        while (cantidad > 0) {
+            imprimirSiguiente();
+            impresos++;
+        }
+        return impresos;
+    }
+
+    public synchronized int cantidadPendientes() {
+        return cantidad + cantidadEspera;
+    }
+
+    public synchronized void mostrarCola() {
+        System.out.println("Cola (" + cantidad + " en cola, " + cantidadEspera + " en espera):");
+        for (int i = 0; i < cantidad; i++) {
+            System.out.println((i + 1) + ". " + cola[(inicio + i) % cola.length]);
+        }
+        for (int i = 0; i < cantidadEspera; i++) {
+            System.out.println("   espera " + (i + 1) + ". " + espera[i]);
+        }
+    }
+}
+
 //-----
+
+public class Documento {
+
+    private final String nombreArchivo;
+    private final String autor;
+
+    public Documento(String nombreArchivo, String autor) {
+        this.nombreArchivo = nombreArchivo;
+        this.autor = autor;
+    }
+
+    public String getNombreArchivo() {
+        return nombreArchivo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    @Override
+    public String toString() {
+        return nombreArchivo + " (" + autor + ")";
+    }
+}
+
 //-----
+
+public class TerminalVentas {
+
+    public void enviar(String nombreArchivo, String autor) {
+        ColaImpresion cola = ColaImpresion.obtenerInstancia();
+        String respuesta = cola.encolar(new Documento(nombreArchivo, autor));
+        System.out.println("Ventas -> " + respuesta);
+    }
+}
+
+//-----
+
+public class TerminalAdministracion {
+
+    public void enviar(String nombreArchivo, String autor) {
+        ColaImpresion cola = ColaImpresion.obtenerInstancia();
+        String respuesta = cola.encolar(new Documento(nombreArchivo, autor));
+        System.out.println("Administracion -> " + respuesta);
+    }
+}
+
+//-----
+
+public class Main {
+
+    public static void main(String[] args) {
+        ColaImpresion a = ColaImpresion.obtenerInstancia();
+        ColaImpresion b = ColaImpresion.obtenerInstancia();
+        System.out.println("Misma instancia: " + (a == b));
+
+        TerminalVentas ventas = new TerminalVentas();
+        TerminalAdministracion admin = new TerminalAdministracion();
+
+        ventas.enviar("factura01.pdf", "Ana");
+        admin.enviar("contrato.docx", "Luis");
+        ventas.enviar("informe.pdf", "Ana");
+
+        a.mostrarCola();
+        a.imprimirTodos();
+    }
+}
