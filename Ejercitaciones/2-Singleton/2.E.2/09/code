@@ -1,22 +1,145 @@
+public final class GestorImpresion {
 
+    private static volatile GestorImpresion instancia;
+    private final Object candado = new Object();
 
+    private Documento[] cola = new Documento[10];
+    private int inicio = 0;
+    private int fin = 0;
+
+    private Documento[] procesados = new Documento[10];
+    private int cantProcesados = 0;
+
+    private GestorImpresion() {}
+
+    public static GestorImpresion obtenerInstancia() {
+        if (instancia == null) {
+            synchronized (GestorImpresion.class) {
+                if (instancia == null) {
+                    instancia = new GestorImpresion();
+                }
+            }
+        }
+        return instancia;
+    }
+
+    private boolean existeId(String id) {
+        for (int i = inicio; i < fin; i++) {
+            if (cola[i].getId().equalsIgnoreCase(id)) return true;
+        }
+        for (int i = 0; i < cantProcesados; i++) {
+            if (procesados[i].getId().equalsIgnoreCase(id)) return true;
+        }
+        return false;
+    }
+
+    private Documento[] agrandar(Documento[] arr, int desde, int hasta) {
+        Documento[] nuevo = new Documento[arr.length * 2];
+        for (int i = desde; i < hasta; i++) nuevo[i - desde] = arr[i];
+        return nuevo;
+    }
+
+    public boolean encolar(Documento doc) {
+        if (doc == null || doc.getId() == null || doc.getId().isBlank()) return false;
+        synchronized (candado) {
+            if (existeId(doc.getId())) return false;
+            if (fin == cola.length) {
+                cola = agrandar(cola, inicio, fin);
+                fin -= inicio;
+                inicio = 0;
+            }
+            cola[fin++] = doc;
+            return true;
+        }
+    }
+
+    public Documento procesarSiguiente() {
+        synchronized (candado) {
+            if (inicio == fin) return null;
+            Documento doc = cola[inicio];
+            cola[inicio++] = null;
+            if (cantProcesados == procesados.length) {
+                procesados = agrandar(procesados, 0, cantProcesados);
+            }
+            procesados[cantProcesados++] = doc;
+            System.out.println("Imprimiendo - " + doc);
+            return doc;
+        }
+    }
+
+    public void procesarTodos() {
+        while (procesarSiguiente() != null) {}
+    }
+
+    public void emitirInforme() {
+        synchronized (candado) {
+            System.out.println("Informe - total procesados: " + cantProcesados);
+            for (int i = 0; i < cantProcesados; i++) {
+                System.out.println((i + 1) + ". " + procesados[i]);
+            }
+        }
+    }
+}
 
 //-----
 
+public final class Documento {
 
+    private final String id;
+    private final String nombre;
+    private final String sector;
+    private final int paginas;
+
+    public Documento(String id, String nombre, String sector, int paginas) {
+        this.id = id;
+        this.nombre = nombre;
+        this.sector = sector;
+        this.paginas = paginas;
+    }
+
+    public String getId() { return id; }
+
+    @Override
+    public String toString() {
+        return id + " - " + nombre + " - " + sector + " (" + paginas + " pags)";
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        String[] sectores = {"Recepcion", "Facturacion", "Archivo"};
+        Thread[] hilos = new Thread[10];
+        GestorImpresion[] refs = new GestorImpresion[10];
 
+        for (int i = 0; i < 10; i++) {
+            int h = i;
+            hilos[i] = new Thread(() -> {
+                refs[h] = GestorImpresion.obtenerInstancia();
+                for (int j = 1; j <= 3; j++) {
+                    String id = "DOC-" + (h * 3 + j);
+                    refs[h].encolar(new Documento(id, "Archivo_" + id + ".pdf", sectores[h % 3], j + 1));
+                }
+            });
+            hilos[i].start();
+        }
+        for (Thread t : hilos) t.join();
 
-//-----
+        GestorImpresion gestor = GestorImpresion.obtenerInstancia();
+        boolean mismaInstancia = true;
+        for (GestorImpresion r : refs) {
+            if (r != gestor) {
+                mismaInstancia = false;
+                break;
+            }
+        }
 
+        System.out.println("Misma instancia en los 10 hilos: " + mismaInstancia);
+        gestor.procesarTodos();
+        gestor.emitirInforme();
+    }
+}
 
-
-//-----
-
-
-
-//-----
 
 
