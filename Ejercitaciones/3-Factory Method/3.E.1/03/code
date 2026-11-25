@@ -1,35 +1,67 @@
-
-
-//-----
-
-
+public interface Notificacion {
+    void enviar(String mensaje);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class NotificacionEmail implements Notificacion {
+    @Override
+    public void enviar(String mensaje) {
+        System.out.println("Email - " + mensaje);
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class NotificacionSMS implements Notificacion {
+    @Override
+    public void enviar(String mensaje) {
+        System.out.println("SMS - " + mensaje);
+    }
+}
 
 //-----
 
+public abstract class CreadorNotificacion {
 
+    public abstract Notificacion crearNotificacion();
 
-A
+    public void notificar(String mensaje) {
+        Notificacion canal = crearNotificacion();
+        canal.enviar(mensaje);
+    }
+}
+
+//-----
+
+public class CreadorEmail extends CreadorNotificacion {
+    @Override
+    public Notificacion crearNotificacion() {
+        return new NotificacionEmail();
+    }
+}
+
+//-----
+
+public class CreadorSMS extends CreadorNotificacion {
+    @Override
+    public Notificacion crearNotificacion() {
+        return new NotificacionSMS();
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorNotificacion[] creadores = {
+            new CreadorEmail(),
+            new CreadorSMS()
+        };
+
+        for (CreadorNotificacion c : creadores) {
+            c.notificar("Nuevo tomo de Uzumaki disponible");
+        }
+    }
+}
+
