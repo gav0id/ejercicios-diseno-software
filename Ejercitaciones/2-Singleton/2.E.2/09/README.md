@@ -9,7 +9,7 @@
 Se implementó el patrón **Singleton** en `GestorImpresion` para garantizar que todos los hilos operen sobre una única cola compartida, evitando pérdidas o duplicaciones de trabajos. El diseño diferencia claramente la sincronización de creación —resuelta con *Double-Checked Locking* y `volatile` en `obtenerInstancia()`— de la sincronización del estado interno, donde todas las operaciones sobre la cola y el registro de procesados se protegen mediante un objeto `candado` privado.
 
 ## Evidencia de Diseño (UML)
-
+<img width="602" height="404" alt="09 drawio" src="https://github.com/user-attachments/assets/93627a11-3eec-4047-b824-ce57d4688e17" />
 
 ## Fragmento de Código Clave
 ```java
