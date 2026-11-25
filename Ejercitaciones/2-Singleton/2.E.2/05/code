@@ -1,22 +1,74 @@
+public class GestorReservasSala {
 
+    private static GestorReservasSala instancia;
+    private final String[] reservas = new String[10];
+    private int cantidad = 0;
 
+    private GestorReservasSala() {}
+
+    public static synchronized GestorReservasSala obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new GestorReservasSala();
+        }
+        return instancia;
+    }
+
+    private int buscar(String idSocio) {
+        for (int i = 0; i < cantidad; i++) {
+            if (reservas[i].equalsIgnoreCase(idSocio)) return i;
+        }
+        return -1;
+    }
+
+    public synchronized boolean reservar(String idSocio) {
+        if (idSocio == null || idSocio.isBlank() || buscar(idSocio) != -1 || cantidad >= 10) {
+            return false;
+        }
+        reservas[cantidad++] = idSocio;
+        return true;
+    }
+
+    public synchronized boolean cancelar(String idSocio) {
+        int pos = buscar(idSocio);
+        if (pos == -1) return false;
+        for (int i = pos + 1; i < cantidad; i++) {
+            reservas[i - 1] = reservas[i];
+        }
+        reservas[--cantidad] = null;
+        return true;
+    }
+
+    public synchronized String[] obtenerReservas() {
+        String[] copia = new String[cantidad];
+        for (int i = 0; i < cantidad; i++) copia[i] = reservas[i];
+        return copia;
+    }
+
+    public synchronized int lugaresDisponibles() {
+        return 10 - cantidad;
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread[] hilos = new Thread[30];
+        for (int i = 0; i < 30; i++) {
+            String socio = "SOC-" + (i + 1);
+            hilos[i] = new Thread(() -> GestorReservasSala.obtenerInstancia().reservar(socio));
+            hilos[i].start();
+        }
+        for (Thread h : hilos) h.join();
 
+        GestorReservasSala g1 = GestorReservasSala.obtenerInstancia();
+        GestorReservasSala g2 = GestorReservasSala.obtenerInstancia();
+        String[] activas = g1.obtenerReservas();
 
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+        System.out.println("Misma instancia: " + (g1 == g2));
+        System.out.println("Activas: " + activas.length + " | Disponibles: " + g1.lugaresDisponibles());
+        System.out.println("Duplicado (" + activas[0] + "): " + g1.reservar(activas[0]));
+        System.out.println("Cancelar inexistente: " + g1.cancelar("SOC-670") + " | Disponibles: " + g1.lugaresDisponibles());
+        System.out.println("Cancelar existente (" + activas[0] + "): " + g1.cancelar(activas[0]) + " | Disponibles: " + g1.lugaresDisponibles());
+    }
+}
