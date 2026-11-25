@@ -1,22 +1,161 @@
+import java.time.LocalDate;
 
+public class RegistroInsumos {
 
+    private static RegistroInsumos instancia;
+    private Movimiento[] movimientos = new Movimiento[4];
+    private int cantidad = 0;
+
+    private RegistroInsumos() {}
+
+    public static RegistroInsumos obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new RegistroInsumos();
+        }
+        return instancia;
+    }
+
+    public boolean registrar(String codigoInsumo, TipoMovimiento tipo, int monto, String sector, LocalDate fecha) {
+        if (codigoInsumo == null || codigoInsumo.isBlank() || tipo == null
+                || monto <= 0 || sector == null || sector.isBlank() || fecha == null) {
+            return false;
+        }
+        String codigo = codigoInsumo.trim();
+        if (tipo == TipoMovimiento.SALIDA && monto > calcularSaldo(codigo)) {
+            return false;
+        }
+        if (cantidad == movimientos.length) {
+            Movimiento[] nuevo = new Movimiento[movimientos.length * 2];
+            for (int i = 0; i < cantidad; i++) nuevo[i] = movimientos[i];
+            movimientos = nuevo;
+        }
+        movimientos[cantidad++] = new Movimiento(codigo, tipo, monto, sector.trim(), fecha);
+        return true;
+    }
+
+    public int calcularSaldo(String codigoInsumo) {
+        int saldo = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (movimientos[i].getCodigoInsumo().equalsIgnoreCase(codigoInsumo)) {
+                saldo += (movimientos[i].getTipo() == TipoMovimiento.ENTRADA)
+                        ? movimientos[i].getCantidad()
+                        : -movimientos[i].getCantidad();
+            }
+        }
+        return saldo;
+    }
+
+    public Movimiento[] obtenerHistorial() {
+        Movimiento[] copia = new Movimiento[cantidad];
+        for (int i = 0; i < cantidad; i++) copia[i] = movimientos[i];
+        return copia;
+    }
+
+    public Movimiento[] filtrar(String codigoInsumo, String sector) {
+        int total = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (coincide(movimientos[i], codigoInsumo, sector)) total++;
+        }
+        Movimiento[] resultado = new Movimiento[total];
+        int pos = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (coincide(movimientos[i], codigoInsumo, sector)) resultado[pos++] = movimientos[i];
+        }
+        return resultado;
+    }
+
+    private boolean coincide(Movimiento m, String codigo, String sector) {
+        boolean okCodigo = (codigo == null || codigo.isBlank() || m.getCodigoInsumo().equalsIgnoreCase(codigo));
+        boolean okSector = (sector == null || sector.isBlank() || m.getSector().equalsIgnoreCase(sector));
+        return okCodigo && okSector;
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
+public enum TipoMovimiento { ENTRADA, SALIDA }
 
 //-----
 
+import java.time.LocalDate;
 
+public final class Movimiento {
+
+    private final String codigoInsumo;
+    private final TipoMovimiento tipo;
+    private final int cantidad;
+    private final String sector;
+    private final LocalDate fecha;
+
+    Movimiento(String codigoInsumo, TipoMovimiento tipo, int cantidad, String sector, LocalDate fecha) {
+        this.codigoInsumo = codigoInsumo;
+        this.tipo = tipo;
+        this.cantidad = cantidad;
+        this.sector = sector;
+        this.fecha = fecha;
+    }
+
+    public String getCodigoInsumo() { return codigoInsumo; }
+    public TipoMovimiento getTipo() { return tipo; }
+    public int getCantidad() { return cantidad; }
+    public String getSector() { return sector; }
+    public LocalDate getFecha() { return fecha; }
+
+    @Override
+    public String toString() {
+        return fecha + " - " + sector + " - " + tipo + " - " + codigoInsumo + " (" + cantidad + ")";
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public class SectorHospital {
+
+    private final String nombre;
+    private final RegistroInsumos registro;
+
+    public SectorHospital(String nombre) {
+        this.nombre = nombre;
+        this.registro = RegistroInsumos.obtenerInstancia();
+    }
+
+    public RegistroInsumos getRegistro() { return registro; }
+
+    public boolean registrar(String codigoInsumo, TipoMovimiento tipo, int cantidad, LocalDate fecha) {
+        return registro.registrar(codigoInsumo, tipo, cantidad, nombre, fecha);
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public class Main {
+    public static void main(String[] args) {
+        SectorHospital deposito = new SectorHospital("Deposito");
+        SectorHospital consultorios = new SectorHospital("Consultorios");
+        SectorHospital laboratorio = new SectorHospital("Laboratorio");
+
+        boolean mismaInstancia = deposito.getRegistro() == consultorios.getRegistro()
+                && consultorios.getRegistro() == laboratorio.getRegistro();
+        System.out.println("Misma instancia en los 3 sectores: " + mismaInstancia);
+
+        LocalDate hoy = LocalDate.of(2026, 11, 25);
+        System.out.println("Entrada inicial INS-67: " + deposito.registrar("INS-67", TipoMovimiento.ENTRADA, 50, hoy));
+        System.out.println("Salida Consultorios (20): " + consultorios.registrar("INS-67", TipoMovimiento.SALIDA, 20, hoy));
+        System.out.println("Salida Laboratorio (40 - excede saldo): " + laboratorio.registrar("INS-67", TipoMovimiento.SALIDA, 40, hoy));
+        System.out.println("Cantidad invalida (-5): " + deposito.registrar("INS-67", TipoMovimiento.ENTRADA, -5, hoy));
+        System.out.println("Salida Laboratorio (10): " + laboratorio.registrar("INS-67", TipoMovimiento.SALIDA, 10, hoy));
+
+        RegistroInsumos reg = RegistroInsumos.obtenerInstancia();
+        System.out.println("Saldo INS-67: " + reg.calcularSaldo("INS-67"));
+
+        System.out.println("Historial completo:");
+        for (Movimiento m : reg.obtenerHistorial()) System.out.println("  " + m);
+
+        System.out.println("Filtro (INS-67, Laboratorio):");
+        for (Movimiento m : reg.filtrar("INS-67", "Laboratorio")) System.out.println("  " + m);
+    }
+}
