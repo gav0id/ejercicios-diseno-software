@@ -1,22 +1,75 @@
+public class GeneradorTurnos {
 
+    private static GeneradorTurnos instancia;
+    private int contador = 0;
+    private String[] historial = new String[10];
 
+    private GeneradorTurnos() {}
+
+    public static GeneradorTurnos obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new GeneradorTurnos();
+        }
+        return instancia;
+    }
+
+    public int generarNumero(String terminal) {
+        if (contador == historial.length) {
+            String[] nuevo = new String[historial.length * 2];
+            for (int i = 0; i < contador; i++) nuevo[i] = historial[i];
+            historial = nuevo;
+        }
+        historial[contador] = "#" + (contador + 1) + " - " + terminal;
+        return ++contador;
+    }
+
+    public int ultimoNumero() {
+        return contador;
+    }
+
+    public void mostrarHistorial() {
+        for (int i = 0; i < contador; i++) {
+            System.out.println(historial[i]);
+        }
+    }
+}
 
 //-----
 
+public class TerminalAtencion {
 
+    private final String nombre;
+
+    public TerminalAtencion(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public int solicitarNumero() {
+        return GeneradorTurnos.obtenerInstancia().generarNumero(nombre);
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) {
+        GeneradorTurnos g1 = GeneradorTurnos.obtenerInstancia();
+        GeneradorTurnos g2 = GeneradorTurnos.obtenerInstancia();
+        System.out.println("Misma instancia: " + (g1 == g2));
 
+        TerminalAtencion[] terminales = {
+                new TerminalAtencion("Terminal 1"),
+                new TerminalAtencion("Terminal 2"),
+                new TerminalAtencion("Terminal 3")
+        };
 
-//-----
+        for (int i = 0; i < 20; i++) {
+            terminales[i % 3].solicitarNumero();
+        }
 
-
-
-//-----
-
-
-
-//-----
-
+        System.out.println("Ultimo numero (consulta 1): " + g1.ultimoNumero());
+        System.out.println("Ultimo numero (consulta 2): " + g1.ultimoNumero());
+        g1.mostrarHistorial();
+    }
+}
 
