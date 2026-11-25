@@ -1,35 +1,68 @@
-
-
-//-----
-
-
+public interface Documento {
+    void abrir();
+}
 
 //-----
 
+public abstract class CreadorDocumento {
 
+    public abstract Documento crearDocumento();
 
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    public void abrirDocumento() {
+        Documento doc = crearDocumento();
+        doc.abrir();
+    }
+}
 
 //-----
 
-
+public class CreadorTextoPlano extends CreadorDocumento {
+    @Override
+    public Documento crearDocumento() {
+        return new DocumentoTextoPlano();
+    }
+}
 
 //-----
 
-
+public class CreadorDocumentoEnriquecido extends CreadorDocumento {
+    @Override
+    public Documento crearDocumento() {
+        return new DocumentoEnriquecido();
+    }
+}
 
 //-----
 
+public class DocumentoEnriquecido implements Documento {
+    @Override
+    public void abrir() {
+        System.out.println("Documento enriquecido - abriendo archivo .rtf con formato");
+    }
+}
+
+//-----
+
+public class DocumentoTextoPlano implements Documento {
+    @Override
+    public void abrir() {
+        System.out.println("Texto plano - abriendo archivo .txt");
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorDocumento[] creadores = {
+                new CreadorTextoPlano(),
+                new CreadorDocumentoEnriquecido()
+        };
+
+        for (CreadorDocumento c : creadores) {
+            c.abrirDocumento();
+        }
+    }
+}
 
 
-A
