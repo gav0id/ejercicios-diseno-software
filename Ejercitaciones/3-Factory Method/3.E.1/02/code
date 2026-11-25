@@ -1,35 +1,91 @@
-
-
-//-----
-
-
+public interface ConexionBD {
+    void ejecutarConsultaPrueba(String sql);
+}
 
 //-----
 
+public class ConexionSQLite implements ConexionBD {
 
+    private final String archivo;
 
-//-----
+    public ConexionSQLite(String archivo) {
+        this.archivo = archivo;
+    }
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    @Override
+    public void ejecutarConsultaPrueba(String sql) {
+        System.out.println("SQLite (" + archivo + ") - ejecutando: " + sql);
+    }
+}
 
 //-----
 
+public class ConexionPostgreSQL implements ConexionBD {
 
+    private final String url;
+
+    public ConexionPostgreSQL(String url) {
+        this.url = url;
+    }
+
+    @Override
+    public void ejecutarConsultaPrueba(String sql) {
+        System.out.println("PostgreSQL (" + url + ") - ejecutando: " + sql);
+    }
+}
 
 //-----
 
+public abstract class CreadorConexion {
+
+    public abstract ConexionBD crearConexion();
+
+    public void probarConexion(String sql) {
+        ConexionBD conexion = crearConexion();
+        conexion.ejecutarConsultaPrueba(sql);
+    }
+}
+
+//-----
+
+public class CreadorSQLite extends CreadorConexion {
+    @Override
+    public ConexionBD crearConexion() {
+        return new ConexionSQLite("mangas.db");
+    }
+}
+
+//-----
+
+public class CreadorPostgreSQL extends CreadorConexion {
+    @Override
+    public ConexionBD crearConexion() {
+        return new ConexionPostgreSQL("localhost:5432/mangas");
+    }
+}
+
+//-----
+
+public class Main {
+
+    private static CreadorConexion seleccionarCreador(String motor) {
+        if (motor.equalsIgnoreCase("sqlite")) return new CreadorSQLite();
+        if (motor.equalsIgnoreCase("postgresql")) return new CreadorPostgreSQL();
+        throw new IllegalArgumentException("Motor no soportado: " + motor);
+    }
+
+    private static void ejecutarNegocio(CreadorConexion creador) {
+        creador.probarConexion("SELECT * FROM mangas LIMIT 1");
+    }
+
+    public static void main(String[] args) {
+        String[] motoresConfigurados = {"sqlite", "postgresql"};
+
+        for (String motor : motoresConfigurados) {
+            CreadorConexion creador = seleccionarCreador(motor);
+            ejecutarNegocio(creador);
+        }
+    }
+}
 
 
-A
