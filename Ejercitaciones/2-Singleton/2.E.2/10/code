@@ -1,23 +1,185 @@
+import java.time.LocalDate;
+import java.time.LocalTime;
 
+public final class AdministradorTurnos {
 
+    private static volatile AdministradorTurnos instancia;
+    private final Object candado = new Object();
+
+    private Turno[] agenda = new Turno[4];
+    private int cantidad = 0;
+
+    private AdministradorTurnos() {}
+
+    public static AdministradorTurnos obtenerInstancia() {
+        if (instancia == null) {
+            synchronized (AdministradorTurnos.class) {
+                if (instancia == null) {
+                    instancia = new AdministradorTurnos();
+                }
+            }
+        }
+        return instancia;
+    }
+
+    private int buscar(String profesional, LocalDate fecha, LocalTime horario) {
+        for (int i = 0; i < cantidad; i++) {
+            Turno t = agenda[i];
+            if (t.getProfesional().equalsIgnoreCase(profesional)
+                    && t.getFecha().equals(fecha)
+                    && t.getHorario().equals(horario)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public boolean cargarHorario(String profesional, LocalDate fecha, LocalTime horario) {
+        if (profesional == null || profesional.isBlank() || fecha == null || horario == null) return false;
+        synchronized (candado) {
+            if (buscar(profesional.trim(), fecha, horario) != -1) return false;
+            if (cantidad == agenda.length) {
+                Turno[] nuevo = new Turno[agenda.length * 2];
+                for (int i = 0; i < cantidad; i++) nuevo[i] = agenda[i];
+                agenda = nuevo;
+            }
+            agenda[cantidad++] = new Turno(profesional.trim(), fecha, horario, null);
+            return true;
+        }
+    }
+
+    public boolean reservar(String paciente, String profesional, LocalDate fecha, LocalTime horario) {
+        if (paciente == null || paciente.isBlank()) return false;
+        synchronized (candado) {
+            int pos = buscar(profesional, fecha, horario);
+            if (pos == -1 || !agenda[pos].estaLibre()) return false;
+            agenda[pos] = agenda[pos].conPaciente(paciente.trim());
+            return true;
+        }
+    }
+
+    public boolean cancelar(String profesional, LocalDate fecha, LocalTime horario) {
+        synchronized (candado) {
+            int pos = buscar(profesional, fecha, horario);
+            if (pos == -1 || agenda[pos].estaLibre()) return false;
+            agenda[pos] = agenda[pos].conPaciente(null);
+            return true;
+        }
+    }
+
+    public Turno[] consultarAgenda() {
+        synchronized (candado) {
+            Turno[] copia = new Turno[cantidad];
+            for (int i = 0; i < cantidad; i++) copia[i] = agenda[i];
+            return copia;
+        }
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 
+public final class Turno {
+
+    private final String profesional;
+    private final LocalDate fecha;
+    private final LocalTime horario;
+    private final String paciente;
+
+    public Turno(String profesional, LocalDate fecha, LocalTime horario, String paciente) {
+        this.profesional = profesional;
+        this.fecha = fecha;
+        this.horario = horario;
+        this.paciente = paciente;
+    }
+
+    public String getProfesional() { return profesional; }
+    public LocalDate getFecha() { return fecha; }
+    public LocalTime getHorario() { return horario; }
+    public String getPaciente() { return paciente; }
+    public boolean estaLibre() { return paciente == null; }
+
+    public Turno conPaciente(String nuevoPaciente) {
+        return new Turno(profesional, fecha, horario, nuevoPaciente);
+    }
+
+    @Override
+    public String toString() {
+        String estado = estaLibre() ? "DISPONIBLE" : "OCUPADO (" + paciente + ")";
+        return profesional + " - " + fecha + " " + horario + " - " + estado;
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 
+public class PuestoTurnos {
+
+    private final String nombre;
+    private final AdministradorTurnos admin;
+
+    public PuestoTurnos(String nombre) {
+        this.nombre = nombre;
+        this.admin = AdministradorTurnos.obtenerInstancia();
+    }
+
+    public AdministradorTurnos getAdmin() { return admin; }
+
+    public boolean reservar(String paciente, String profesional, LocalDate fecha, LocalTime horario) {
+        return admin.reservar(paciente, profesional, fecha, horario);
+    }
+
+    public boolean cancelar(String profesional, LocalDate fecha, LocalTime horario) {
+        return admin.cancelar(profesional, fecha, horario);
+    }
+
+    public void mostrarAgenda() {
+        System.out.println(nombre + " - agenda:");
+        for (Turno t : admin.consultarAgenda()) System.out.println("  " + t);
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PuestoTurnos recepcion = new PuestoTurnos("Recepcion");
+        PuestoTurnos autoservicio = new PuestoTurnos("Autoservicio");
+        System.out.println("Misma instancia: " + (recepcion.getAdmin() == autoservicio.getAdmin()));
 
-//-----
+        LocalDate hoy = LocalDate.of(2026, 11, 25);
+        LocalTime hora = LocalTime.of(10, 0);
+        recepcion.getAdmin().cargarHorario("Dra. Tenma", hoy, hora);
+        recepcion.getAdmin().cargarHorario("Dra. Tenma", hoy, LocalTime.of(10, 30));
 
+        Thread[] hilos = new Thread[20];
+        boolean[] resultados = new boolean[20];
+        for (int i = 0; i < 20; i++) {
+            int n = i;
+            PuestoTurnos puesto = (n % 2 == 0) ? recepcion : autoservicio;
+            hilos[i] = new Thread(() -> resultados[n] = puesto.reservar("Paciente-" + (n + 1), "Dra. Tenma", hoy, hora));
+            hilos[i].start();
+        }
+        for (Thread h : hilos) h.join();
 
+        int exitosos = 0;
+        for (boolean ok : resultados) if (ok) exitosos++;
+        System.out.println("Exitosos sobre 20 solicitudes: " + exitosos);
 
-//-----
+        recepcion.mostrarAgenda();
+        System.out.println("Cancelar inexistente: " + autoservicio.cancelar("Dra. Tenma", hoy, LocalTime.of(15, 0)));
+        System.out.println("Cancelar existente: " + recepcion.cancelar("Dra. Tenma", hoy, hora));
+        autoservicio.mostrarAgenda();
+    }
+}
+
 
 
 
