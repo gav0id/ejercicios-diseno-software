@@ -1,23 +1,220 @@
+import java.time.LocalDate;
 
+public class AdministradorPrestamos {
 
+    private static AdministradorPrestamos instancia;
+
+    private Prestamo[] activos;
+    private int cantidad;
+
+    private AdministradorPrestamos() {
+        activos = new Prestamo[2];
+        cantidad = 0;
+    }
+
+    public static AdministradorPrestamos obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new AdministradorPrestamos();
+        }
+        return instancia;
+    }
+
+    private boolean estaVacio(String texto) {
+        return texto == null || texto.trim().isEmpty();
+    }
+
+    private int buscarPosicion(String idEjemplar) {
+        for (int i = 0; i < cantidad; i++) {
+            if (activos[i].getIdEjemplar().equalsIgnoreCase(idEjemplar)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void agrandar() {
+        Prestamo[] nuevo = new Prestamo[activos.length * 2];
+        for (int i = 0; i < cantidad; i++) {
+            nuevo[i] = activos[i];
+        }
+        activos = nuevo;
+    }
+
+    public String prestar(String idEjemplar, String socio, LocalDate fecha) {
+        if (estaVacio(idEjemplar)) {
+            return "RECHAZADO: identificador de ejemplar vacio";
+        }
+        if (estaVacio(socio)) {
+            return "RECHAZADO: socio vacio";
+        }
+        if (fecha == null) {
+            return "RECHAZADO: fecha nula";
+        }
+        String id = idEjemplar.trim();
+        int posicion = buscarPosicion(id);
+        if (posicion != -1) {
+            return "RECHAZADO: el ejemplar " + id + " ya esta prestado a " + activos[posicion].getSocio();
+        }
+        if (cantidad == activos.length) {
+            agrandar();
+        }
+        activos[cantidad] = new Prestamo(id, socio.trim(), fecha);
+        cantidad++;
+        return "PRESTADO: " + id + " a " + socio.trim();
+    }
+
+    public String devolver(String idEjemplar) {
+        if (estaVacio(idEjemplar)) {
+            return "RECHAZADO: identificador de ejemplar vacio";
+        }
+        String id = idEjemplar.trim();
+        int posicion = buscarPosicion(id);
+        if (posicion == -1) {
+            return "RECHAZADO: el ejemplar " + id + " no tiene un prestamo activo";
+        }
+        String socio = activos[posicion].getSocio();
+        for (int i = posicion + 1; i < cantidad; i++) {
+            activos[i - 1] = activos[i];
+        }
+        cantidad--;
+        activos[cantidad] = null;
+        return "DEVUELTO: " + id + " (prestado a " + socio + ")";
+    }
+
+    public Prestamo[] prestamosActivosDe(String socio) {
+        if (estaVacio(socio)) {
+            return new Prestamo[0];
+        }
+        int coincidencias = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (activos[i].getSocio().equalsIgnoreCase(socio.trim())) {
+                coincidencias++;
+            }
+        }
+        Prestamo[] resultado = new Prestamo[coincidencias];
+        int posicion = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (activos[i].getSocio().equalsIgnoreCase(socio.trim())) {
+                resultado[posicion] = activos[i];
+                posicion++;
+            }
+        }
+        return resultado;
+    }
+
+    public int cantidadActivos() {
+        return cantidad;
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public class MostradorPrincipal {
+
+    private final AdministradorPrestamos administrador;
+
+    public MostradorPrincipal() {
+        administrador = AdministradorPrestamos.obtenerInstancia();
+    }
+
+    public AdministradorPrestamos getAdministrador() {
+        return administrador;
+    }
+
+    public void prestar(String idEjemplar, String socio, LocalDate fecha) {
+        System.out.println("Principal -> " + administrador.prestar(idEjemplar, socio, fecha));
+    }
+
+    public void devolver(String idEjemplar) {
+        System.out.println("Principal -> " + administrador.devolver(idEjemplar));
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public class MostradorSecundario {
+
+    private final AdministradorPrestamos administrador;
+
+    public MostradorSecundario() {
+        administrador = AdministradorPrestamos.obtenerInstancia();
+    }
+
+    public AdministradorPrestamos getAdministrador() {
+        return administrador;
+    }
+
+    public void prestar(String idEjemplar, String socio, LocalDate fecha) {
+        System.out.println("Secundario -> " + administrador.prestar(idEjemplar, socio, fecha));
+    }
+
+    public void mostrarActivos(String socio) {
+        Prestamo[] activos = administrador.prestamosActivosDe(socio);
+        System.out.println("Secundario -> prestamos activos de " + socio + ": " + activos.length);
+        for (Prestamo prestamo : activos) {
+            System.out.println("  " + prestamo);
+        }
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public final class Prestamo {
+
+    private final String idEjemplar;
+    private final String socio;
+    private final LocalDate fecha;
+
+    public Prestamo(String idEjemplar, String socio, LocalDate fecha) {
+        this.idEjemplar = idEjemplar;
+        this.socio = socio;
+        this.fecha = fecha;
+    }
+
+    public String getIdEjemplar() {
+        return idEjemplar;
+    }
+
+    public String getSocio() {
+        return socio;
+    }
+
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s | socio: %s | fecha: %s", idEjemplar, socio, fecha);
+    }
+}
 
 //-----
 
+import java.time.LocalDate;
 
+public class Main {
 
-//-----
+    public static void main(String[] args) {
+        MostradorPrincipal principal = new MostradorPrincipal();
+        MostradorSecundario secundario = new MostradorSecundario();
+        System.out.println("Mismo administrador: " + (principal.getAdministrador() == secundario.getAdministrador()));
 
+        LocalDate hoy = LocalDate.of(2026, 11, 25);
+        principal.prestar("UZU-T1-01", "Gabriel", hoy);
+        secundario.prestar("UZU-T1-01", "Jorge", hoy);
+        secundario.prestar("UZU-T1-02", "Jorge", hoy);
+        principal.prestar("TKG-T1-01", "Gabriel", hoy);
+        secundario.mostrarActivos("Gabriel");
 
-
+        principal.devolver("UZU-T1-01");
+        principal.devolver("UZU-T1-01");
+        secundario.prestar("UZU-T1-01", "Jorge", hoy);
+    }
+}
