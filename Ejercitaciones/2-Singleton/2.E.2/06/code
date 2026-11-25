@@ -1,21 +1,123 @@
+import java.time.LocalTime;
 
+public class ConfiguracionHospital {
+
+    private static ConfiguracionHospital instancia;
+    private static int creaciones = 0;
+
+    private String nombre = "Hospital Central";
+    private LocalTime apertura = LocalTime.of(8, 0);
+    private LocalTime cierre = LocalTime.of(20, 0);
+    private int duracionTurno = 30;
+
+    private ConfiguracionHospital() {
+        creaciones++;
+    }
+
+    public static ConfiguracionHospital obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new ConfiguracionHospital();
+        }
+        return instancia;
+    }
+
+    public static int getCreaciones() { return creaciones; }
+    public String getNombre() { return nombre; }
+    public LocalTime getApertura() { return apertura; }
+    public LocalTime getCierre() { return cierre; }
+    public int getDuracionTurno() { return duracionTurno; }
+
+    public boolean setNombre(String nombre) {
+        if (nombre == null || nombre.isBlank()) return false;
+        this.nombre = nombre.trim();
+        return true;
+    }
+
+    public boolean setHorario(LocalTime apertura, LocalTime cierre) {
+        if (apertura == null || cierre == null || !cierre.isAfter(apertura)) return false;
+        this.apertura = apertura;
+        this.cierre = cierre;
+        return true;
+    }
+
+    public boolean setDuracionTurno(int minutos) {
+        if (minutos <= 0) return false;
+        this.duracionTurno = minutos;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return nombre + " | " + apertura + " a " + cierre + " | turnos: " + duracionTurno + " min";
+    }
+}
 
 //-----
 
+import java.time.LocalTime;
 
+public class ModuloRecepcion {
+
+    public ConfiguracionHospital obtenerConfig() {
+        return ConfiguracionHospital.obtenerInstancia();
+    }
+
+    public boolean cambiarHorario(LocalTime apertura, LocalTime cierre) {
+        return obtenerConfig().setHorario(apertura, cierre);
+    }
+
+    public void mostrar() {
+        System.out.println("Recepcion -> " + obtenerConfig());
+    }
+}
 
 //-----
 
+public class ModuloConsultorios {
 
+    public ConfiguracionHospital obtenerConfig() {
+        return ConfiguracionHospital.obtenerInstancia();
+    }
+
+    public boolean cambiarNombre(String nombre) {
+        return obtenerConfig().setNombre(nombre);
+    }
+
+    public boolean cambiarDuracion(int minutos) {
+        return obtenerConfig().setDuracionTurno(minutos);
+    }
+
+    public void mostrar() {
+        System.out.println("Consultorios -> " + obtenerConfig());
+    }
+}
 
 //-----
 
+import java.time.LocalTime;
 
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Creaciones antes de pedir: " + ConfiguracionHospital.getCreaciones());
 
-//-----
+        ModuloRecepcion recepcion = new ModuloRecepcion();
+        ModuloConsultorios consultorios = new ModuloConsultorios();
 
+        System.out.println("Misma instancia: " + (recepcion.obtenerConfig() == consultorios.obtenerConfig()));
+        System.out.println("Creaciones tras consultar ambos: " + ConfiguracionHospital.getCreaciones());
 
+        System.out.println("Horario invalido: " + recepcion.cambiarHorario(LocalTime.of(18, 0), LocalTime.of(9, 0)));
+        System.out.println("Duracion invalida: " + consultorios.cambiarDuracion(-15));
 
-//-----
+        consultorios.cambiarNombre("Hospital San Martin");
+        recepcion.cambiarHorario(LocalTime.of(7, 30), LocalTime.of(21, 0));
+        consultorios.cambiarDuracion(20);
+
+        recepcion.mostrar();
+        consultorios.mostrar();
+        System.out.println("Creaciones finales: " + ConfiguracionHospital.getCreaciones());
+    }
+}
+
 
 
