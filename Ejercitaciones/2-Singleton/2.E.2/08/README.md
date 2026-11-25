@@ -9,7 +9,7 @@
 Se implementó el patrón **Singleton** en `RegistroInsumos` para centralizar todos los movimientos en una única instancia compartida entre los tres sectores, evitando registros dispersos e inconsistencias de stock. Al encapsular la colección interna, exponer consultas mediante copias defensivas y modelar cada `Movimiento` como un objeto inmutable sin operaciones de edición ni eliminación, se garantiza la trazabilidad y la integridad del historial.
 
 ## Evidencia de Diseño (UML)
-
+<img width="1012" height="413" alt="08 drawio" src="https://github.com/user-attachments/assets/7b4d112c-7b2d-4680-ad27-a7bc50c187b2" />
 
 ## Fragmento de Código Clave
 ```java
