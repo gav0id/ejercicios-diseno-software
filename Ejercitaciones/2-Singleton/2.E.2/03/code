@@ -1,22 +1,254 @@
+public class CatalogoLibros {
 
+    private static CatalogoLibros instancia;
 
+    private Libro[] libros;
+    private int cantidad;
+
+    private CatalogoLibros() {
+        libros = new Libro[3];
+        cantidad = 0;
+    }
+
+    public static CatalogoLibros obtenerInstancia() {
+        if (instancia == null) {
+            instancia = new CatalogoLibros();
+        }
+        return instancia;
+    }
+
+    private boolean estaVacio(String texto) {
+        return texto == null || texto.trim().isEmpty();
+    }
+
+    private int buscarPosicion(String codigo) {
+        for (int i = 0; i < cantidad; i++) {
+            if (libros[i].getCodigo().equals(codigo)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void agrandar() {
+        Libro[] nuevo = new Libro[libros.length * 2];
+        for (int i = 0; i < cantidad; i++) {
+            nuevo[i] = libros[i];
+        }
+        libros = nuevo;
+    }
+
+    public String agregar(String codigo, String titulo, String autor, int ejemplares) {
+        if (estaVacio(codigo)) {
+            return "RECHAZADO: codigo vacio";
+        }
+        if (estaVacio(titulo)) {
+            return "RECHAZADO: titulo vacio";
+        }
+        if (estaVacio(autor)) {
+            return "RECHAZADO: autor vacio";
+        }
+        if (ejemplares < 0) {
+            return "RECHAZADO: cantidad negativa";
+        }
+        if (buscarPosicion(codigo.trim()) != -1) {
+            return "RECHAZADO: codigo duplicado (" + codigo.trim() + ")";
+        }
+        if (cantidad == libros.length) {
+            agrandar();
+        }
+        libros[cantidad] = new Libro(codigo.trim(), titulo.trim(), autor.trim(), ejemplares);
+        cantidad++;
+        return "AGREGADO: " + titulo.trim();
+    }
+
+    public String actualizarEjemplares(String codigo, int nuevos) {
+        if (nuevos < 0) {
+            return "RECHAZADO: cantidad negativa";
+        }
+        int posicion = estaVacio(codigo) ? -1 : buscarPosicion(codigo.trim());
+        if (posicion == -1) {
+            return "RECHAZADO: codigo inexistente (" + codigo + ")";
+        }
+        libros[posicion] = libros[posicion].conEjemplares(nuevos);
+        return "ACTUALIZADO: " + libros[posicion].getTitulo() + " ahora tiene " + nuevos + " ejemplares";
+    }
+
+    private boolean coincide(Libro libro, String buscado, boolean porTitulo) {
+        String campo = porTitulo ? libro.getTitulo() : libro.getAutor();
+        return campo.toLowerCase().contains(buscado);
+    }
+
+    private Libro[] buscar(String texto, boolean porTitulo) {
+        if (estaVacio(texto)) {
+            return new Libro[0];
+        }
+        String buscado = texto.trim().toLowerCase();
+        int coincidencias = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (coincide(libros[i], buscado, porTitulo)) {
+                coincidencias++;
+            }
+        }
+        Libro[] resultado = new Libro[coincidencias];
+        int posicion = 0;
+        for (int i = 0; i < cantidad; i++) {
+            if (coincide(libros[i], buscado, porTitulo)) {
+                resultado[posicion] = libros[i];
+                posicion++;
+            }
+        }
+        return resultado;
+    }
+
+    public Libro[] buscarPorTitulo(String texto) {
+        return buscar(texto, true);
+    }
+
+    public Libro[] buscarPorAutor(String texto) {
+        return buscar(texto, false);
+    }
+
+    public int cantidadLibros() {
+        return cantidad;
+    }
+
+    public Libro[] obtenerTodos() {
+        Libro[] copia = new Libro[cantidad];
+        for (int i = 0; i < cantidad; i++) {
+            copia[i] = libros[i];
+        }
+        return copia;
+    }
+}
 
 //-----
 
+public final class Libro {
 
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private final int ejemplares;
+
+    public Libro(String codigo, String titulo, String autor, int ejemplares) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.ejemplares = ejemplares;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public int getEjemplares() {
+        return ejemplares;
+    }
+
+    public Libro conEjemplares(int nuevosEjemplares) {
+        return new Libro(codigo, titulo, autor, nuevosEjemplares);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s | %s | %s | ejemplares: %d", codigo, titulo, autor, ejemplares);
+    }
+}
 
 //-----
 
+public class PantallaPersonal {
 
+    private final CatalogoLibros catalogo;
+
+    public PantallaPersonal() {
+        catalogo = CatalogoLibros.obtenerInstancia();
+    }
+
+    public CatalogoLibros getCatalogo() {
+        return catalogo;
+    }
+
+    public void incorporar(String codigo, String titulo, String autor, int ejemplares) {
+        System.out.println("Personal -> " + catalogo.agregar(codigo, titulo, autor, ejemplares));
+    }
+
+    public void actualizar(String codigo, int ejemplares) {
+        System.out.println("Personal -> " + catalogo.actualizarEjemplares(codigo, ejemplares));
+    }
+}
 
 //-----
 
+public class PantallaConsulta {
 
+    private final CatalogoLibros catalogo;
+
+    public PantallaConsulta() {
+        catalogo = CatalogoLibros.obtenerInstancia();
+    }
+
+    public CatalogoLibros getCatalogo() {
+        return catalogo;
+    }
+
+    public void mostrarCatalogo() {
+        Libro[] todos = catalogo.obtenerTodos();
+        if (todos.length == 0) {
+            System.out.println("Consulta -> catalogo vacio");
+            return;
+        }
+        System.out.println("Consulta -> catalogo (" + todos.length + " libros):");
+        for (Libro libro : todos) {
+            System.out.println("  " + libro);
+        }
+    }
+
+    public void buscarPorTitulo(String texto) {
+        mostrarResultados("titulo", texto, catalogo.buscarPorTitulo(texto));
+    }
+
+    public void buscarPorAutor(String texto) {
+        mostrarResultados("autor", texto, catalogo.buscarPorAutor(texto));
+    }
+
+    private void mostrarResultados(String campo, String texto, Libro[] resultados) {
+        System.out.println("Consulta -> " + campo + " '" + texto + "': " + resultados.length + " resultado(s)");
+        for (Libro libro : resultados) {
+            System.out.println("  " + libro);
+        }
+    }
+}
 
 //-----
 
+public class Main {
 
+    public static void main(String[] args) {
+        PantallaPersonal personal = new PantallaPersonal();
+        PantallaConsulta consulta = new PantallaConsulta();
+        System.out.println("Mismo catalogo: " + (personal.getCatalogo() == consulta.getCatalogo()));
 
-//-----
+        consulta.mostrarCatalogo();
+        personal.incorporar("M001", "Uzumaki Tomo 1", "Junji Ito", 3);
+        personal.incorporar("M002", "Tokyo Ghoul Tomo 1", "Sui Ishida", 2);
+        personal.incorporar("M003", "Choujin X Tomo 1", "Sui Ishida", 4);
+        personal.incorporar("M001", "Death Note Tomo 1", "Tsugumi Ohba y Takeshi Obata", 1);
+        personal.actualizar("M002", 67);
+
+        consulta.mostrarCatalogo();
+        consulta.buscarPorAutor("ishida");
+    }
+}
+
 
 
