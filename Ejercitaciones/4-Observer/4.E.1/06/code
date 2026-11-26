@@ -1,27 +1,91 @@
-
-
-//-----
-
-
+public interface PanelInversor {
+    void actualizar(String simbolo, double precioAnterior, double precioActual, double variacionPct);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class GraficoLineas implements PanelInversor {
+    @Override
+    public void actualizar(String simbolo, double precioAnterior, double precioActual, double variacionPct) {
+        System.out.printf("Grafico Lineas - %s nuevo punto: $%.2f (%.2f%%)%n", simbolo, precioActual, variacionPct);
+    }
+}
 
 //-----
 
-
+public class TablaResumen implements PanelInversor {
+    @Override
+    public void actualizar(String simbolo, double precioAnterior, double precioActual, double variacionPct) {
+        System.out.printf("Tabla Resumen - %s anterior: $%.2f - actual: $%.2f - var: %.2f%%%n",
+                simbolo, precioAnterior, precioActual, variacionPct);
+    }
+}
 
 //-----
 
-
+public class AlertaVolatilidad implements PanelInversor {
+    @Override
+    public void actualizar(String simbolo, double precioAnterior, double precioActual, double variacionPct) {
+        if (Math.abs(variacionPct) >= 5.0) {
+            System.out.printf("Alerta Volatilidad - %s movimiento brusco de %.2f%% ($%.2f)%n",
+                    simbolo, variacionPct, precioActual);
+        }
+    }
+}
 
 //-----
+
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class CotizacionBursatil {
+
+    private final String simbolo;
+    private double precioActual;
+    private final CopyOnWriteArrayList<PanelInversor> paneles = new CopyOnWriteArrayList<>();
+
+    public CotizacionBursatil(String simbolo, double precioInicial) {
+        if (precioInicial <= 0) throw new IllegalArgumentException("Precio inicial invalido");
+        this.simbolo = simbolo;
+        this.precioActual = precioInicial;
+    }
+
+    public void suscribir(PanelInversor panel) {
+        if (panel != null) paneles.addIfAbsent(panel);
+    }
+
+    public void desuscribir(PanelInversor panel) {
+        paneles.remove(panel);
+    }
+
+    public synchronized void actualizarPrecio(double nuevoPrecio) {
+        if (nuevoPrecio <= 0) return;
+        double anterior = this.precioActual;
+        double variacionPct = ((nuevoPrecio - anterior) / anterior) * 100.0;
+        this.precioActual = nuevoPrecio;
+
+        for (PanelInversor p : paneles) {
+            p.actualizar(simbolo, anterior, nuevoPrecio, variacionPct);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CotizacionBursatil amd = new CotizacionBursatil("AMD", 150.00);
+        PanelInversor grafico = new GraficoLineas();
+        PanelInversor tabla = new TablaResumen();
+        PanelInversor alerta = new AlertaVolatilidad();
+
+        amd.suscribir(grafico);
+        amd.suscribir(tabla);
+        amd.suscribir(alerta);
+
+        amd.actualizarPrecio(153.00);
+        amd.actualizarPrecio(168.30);
+
+        amd.desuscribir(grafico);
+        amd.actualizarPrecio(151.47);
+    }
+}
