@@ -1,33 +1,92 @@
-//-----
-
-
-
-//-----
-
-
+public interface ImportadorDatos {
+    String importar(String archivo);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class ImportadorCSV implements ImportadorDatos {
+    @Override
+    public String importar(String archivo) {
+        return "CSV - leyendo columnas de " + archivo;
+    }
+}
 
 //-----
 
+public class ImportadorXML implements ImportadorDatos {
+    @Override
+    public String importar(String archivo) {
+        return "XML - analizando nodos de " + archivo;
+    }
+}
 
+//-----
+
+public class ImportadorJSON implements ImportadorDatos {
+    @Override
+    public String importar(String archivo) {
+        return "JSON - cargando objetos de " + archivo;
+    }
+}
 
 //-----
 
+public abstract class CreadorImportador {
+    public abstract ImportadorDatos crearImportador();
+}
 
+//-----
+
+public class CreadorCSV extends CreadorImportador {
+    @Override
+    public ImportadorDatos crearImportador() {
+        return new ImportadorCSV();
+    }
+}
 
 //-----
 
-
+public class CreadorXML extends CreadorImportador {
+    @Override
+    public ImportadorDatos crearImportador() {
+        return new ImportadorXML();
+    }
+}
 
 //-----
+
+public class CreadorJSON extends CreadorImportador {
+    @Override
+    public ImportadorDatos crearImportador() {
+        return new ImportadorJSON();
+    }
+}
+
+//-----
+
+public class ProcesadorDatos {
+
+    private final CreadorImportador creador;
+
+    public ProcesadorDatos(CreadorImportador creador) {
+        this.creador = creador;
+    }
+
+    public void procesar(String archivo) {
+        ImportadorDatos importador = creador.crearImportador();
+        System.out.println("Datos procesados - " + importador.importar(archivo));
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorImportador[] creadores = { new CreadorCSV(), new CreadorXML(), new CreadorJSON() };
+        String[] archivos = { "catalogo_steam.csv", "inventario_hardware.xml", "playlist_vocaloid.json" };
+
+        for (int i = 0; i < creadores.length; i++) {
+            new ProcesadorDatos(creadores[i]).procesar(archivos[i]);
+        }
+    }
+}
