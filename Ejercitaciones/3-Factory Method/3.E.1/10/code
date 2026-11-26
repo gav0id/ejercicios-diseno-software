@@ -1,35 +1,146 @@
-
-
-//-----
-
-
+public interface EmisorFiscal {
+    ComprobanteFiscal emitir(String pais, String cuit, double monto);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public record ComprobanteFiscal(
+        String pais,
+        String cuitEmisor,
+        double total,
+        String codigoAutorizacion,
+        String selloDigital,
+        String xml
+) {}
 
 //-----
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
+public final class EmisorArgentina implements EmisorFiscal {
+
+    @Override
+    public ComprobanteFiscal emitir(String pais, String cuit, double monto) {
+        if (cuit == null || !cuit.matches("\\d{11}")) {
+            throw new IllegalArgumentException("AR - CUIT invalido (requiere 11 digitos)");
+        }
+        if (monto <= 0) {
+            throw new IllegalArgumentException("AR - monto debe ser positivo");
+        }
+        String cae = "CAE-AR-" + Math.abs((cuit + monto).hashCode());
+        String sello = firmar(pais + "|" + cuit + "|" + monto + "|" + cae);
+        String xml = "<FE pais=\"" + pais + "\" cuit=\"" + cuit + "\" cae=\"" + cae + "\" total=\"" + monto + "\" sello=\"" + sello + "\"/>";
+        return new ComprobanteFiscal(pais, cuit, monto, cae, sello, xml);
+    }
+
+    private String firmar(String datos) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(datos.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16).toUpperCase();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error de firma", e);
+        }
+    }
+}
 
 //-----
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
+public final class EmisorChile implements EmisorFiscal {
+
+    @Override
+    public ComprobanteFiscal emitir(String pais, String cuit, double monto) {
+        if (cuit == null || !cuit.matches("\\d{7,8}-[\\dkK]")) {
+            throw new IllegalArgumentException("CL - RUT invalido");
+        }
+        if (monto <= 0) {
+            throw new IllegalArgumentException("CL - monto debe ser positivo");
+        }
+        String folio = "DTE-CL-" + Math.abs((cuit + monto).hashCode());
+        String sello = firmar(pais + "|" + cuit + "|" + monto + "|" + folio);
+        String xml = "<DTE pais=\"" + pais + "\" rut=\"" + cuit + "\" folio=\"" + folio + "\" total=\"" + monto + "\" sello=\"" + sello + "\"/>";
+        return new ComprobanteFiscal(pais, cuit, monto, folio, sello, xml);
+    }
+
+    private String firmar(String datos) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(datos.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16).toUpperCase();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error de firma", e);
+        }
+    }
+}
 
 //-----
 
+import java.util.Objects;
 
+public abstract class CreadorComprobante {
 
-A
+    private final String jurisdiccion;
+
+    protected CreadorComprobante(String jurisdiccion) {
+        if (jurisdiccion == null || jurisdiccion.isBlank()) {
+            throw new IllegalArgumentException("Jurisdiccion obligatoria");
+        }
+        this.jurisdiccion = jurisdiccion.trim().toUpperCase();
+    }
+
+    protected abstract EmisorFiscal crearEmisor();
+
+    public final ComprobanteFiscal generarComprobante(String pais, String cuit, double monto) {
+        if (pais == null || !pais.trim().equalsIgnoreCase(jurisdiccion)) {
+            throw new IllegalArgumentException("Contexto invalido - se esperaba " + jurisdiccion + " y llego " + pais);
+        }
+        EmisorFiscal emisor = Objects.requireNonNull(crearEmisor(), "Emisor nulo");
+        return emisor.emitir(jurisdiccion, cuit == null ? null : cuit.trim(), monto);
+    }
+}
+
+//-----
+
+public final class CreadorArgentina extends CreadorComprobante {
+    public CreadorArgentina() { super("AR"); }
+    @Override protected EmisorFiscal crearEmisor() { return new EmisorArgentina(); }
+}
+
+//-----
+
+public final class CreadorChile extends CreadorComprobante {
+    public CreadorChile() { super("CL"); }
+    @Override protected EmisorFiscal crearEmisor() { return new EmisorChile(); }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        CreadorComprobante[] creadores = { new CreadorArgentina(), new CreadorChile() };
+        String[] cuits = { "20345678901", "12345678-5" };
+        double[] montos = { 67000.0, 146999.0 };
+
+        Thread[] hilos = new Thread[2];
+        for (int i = 0; i < 2; i++) {
+            int idx = i;
+            hilos[i] = new Thread(() -> {
+                ComprobanteFiscal cf = creadores[idx].generarComprobante(
+                        idx == 0 ? "AR" : "CL", cuits[idx], montos[idx]);
+                System.out.println("Emitido - " + cf.codigoAutorizacion() + " - " + cf.xml());
+            });
+            hilos[i].start();
+        }
+        for (Thread t : hilos) t.join();
+
+        try {
+            creadores[0].generarComprobante("CL", "20345678901", 100.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Bloqueado - " + e.getMessage());
+        }
+    }
+}
