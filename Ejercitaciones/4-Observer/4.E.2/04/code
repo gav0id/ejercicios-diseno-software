@@ -1,27 +1,88 @@
-
-
-//-----
-
-
+public interface ObservadorPrecio {
+    void actualizar(String producto, double precioAnterior, double precioNuevo, double porcentajeRebaja);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public class NotificadorCorreo implements ObservadorPrecio {
+    @Override
+    public void actualizar(String producto, double precioAnterior, double precioNuevo, double porcentajeRebaja) {
+        String etiqueta = porcentajeRebaja >= 20.0 ? "OFERTA DESTACADA" : "BAJA DE PRECIO";
+        System.out.printf("Correo [%s] - %s bajo de $%.2f a $%.2f (-%.2f%%)%n",
+                etiqueta, producto, precioAnterior, precioNuevo, porcentajeRebaja);
+    }
+}
 
 //-----
 
-
+public class PanelNotificacionesWeb implements ObservadorPrecio {
+    @Override
+    public void actualizar(String producto, double precioAnterior, double precioNuevo, double porcentajeRebaja) {
+        String prioridad = porcentajeRebaja >= 20.0 ? "ALTA" : "NORMAL";
+        System.out.printf("Panel Web [Prioridad %s] - %s ahora a $%.2f (ahorro del %.2f%%)%n",
+                prioridad, producto, precioNuevo, porcentajeRebaja);
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProductoCatalogo {
+
+    private final String nombre;
+    private double precio;
+    private final List<ObservadorPrecio> canales = new ArrayList<>();
+
+    public ProductoCatalogo(String nombre, double precioInicial) {
+        if (precioInicial <= 0) throw new IllegalArgumentException("Precio inicial invalido");
+        this.nombre = nombre;
+        this.precio = precioInicial;
+    }
+
+    public void suscribir(ObservadorPrecio canal) {
+        if (canal != null && !canales.contains(canal)) canales.add(canal);
+    }
+
+    public void desuscribir(ObservadorPrecio canal) {
+        canales.remove(canal);
+    }
+
+    public void actualizarPrecio(double nuevoPrecio) {
+        if (nuevoPrecio <= 0) {
+            System.out.println("Catalogo - precio invalido rechazado para " + nombre);
+            return;
+        }
+        double anterior = this.precio;
+        this.precio = nuevoPrecio;
+        if (nuevoPrecio < anterior) {
+            double rebaja = ((anterior - nuevoPrecio) / anterior) * 100.0;
+            notificar(anterior, nuevoPrecio, rebaja);
+        }
+    }
+
+    private void notificar(double anterior, double nuevo, double rebaja) {
+        for (ObservadorPrecio c : new ArrayList<>(canales)) {
+            c.actualizar(nombre, anterior, nuevo, rebaja);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        ProductoCatalogo figura = new ProductoCatalogo("Figura Hatsune Miku - Magical Mirai", 80000.00);
+        ObservadorPrecio correo = new NotificadorCorreo();
+        ObservadorPrecio web = new PanelNotificacionesWeb();
+
+        figura.suscribir(correo);
+        figura.suscribir(web);
+
+        figura.actualizarPrecio(85000.00);
+        figura.actualizarPrecio(76500.00);
+        figura.actualizarPrecio(53550.00);
+        figura.actualizarPrecio(-500.00);
+    }
+}
