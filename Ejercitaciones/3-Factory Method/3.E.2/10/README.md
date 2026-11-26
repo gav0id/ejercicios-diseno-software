@@ -9,7 +9,7 @@
 Se implementó el patrón **Factory Method** mediante la interfaz `EmisorNotarial` y la clase creadora abstracta `CreadorTitulo`. El método `final` `emitirTitulo()` valida previamente la jurisdicción del contexto y delega la creación del emisor en el método fábrica protegido `crearEmisor()`, sobrescrito por `CreadorMendoza` y `CreadorCordoba`. La inmutabilidad del `record` `TituloPropiedad`, el uso de clases y métodos `final`, la ausencia de estado mutable compartido y la validación estricta de datos garantizan seguridad ante concurrencia y protección frente a parámetros inválidos.
 
 ## Evidencia de Diseño (UML)
-![Uploading 10.drawio.png…]()
+<img width="1202" height="536" alt="10 drawio" src="https://github.com/user-attachments/assets/f72701ff-b1cd-49a9-a838-499dba52ee66" />
 
 ## Fragmento de Código Clave
 ```java
