@@ -1,35 +1,93 @@
-
-
-//-----
-
-
+public interface PasarelaPago {
+    String cobrar(double monto);
+}
 
 //-----
 
-
-
-//-----
-
-
+public record OrdenCompra(String medio, double monto) {}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class PagoTarjeta implements PasarelaPago {
+    @Override
+    public String cobrar(double monto) {
+        double total = monto * 1.05;
+        return String.format("Comprobante Tarjeta - subtotal: $%.2f - recargo 5%% - total: $%.2f", monto, total);
+    }
+}
 
 //-----
 
-
+public class PagoTransferencia implements PasarelaPago {
+    @Override
+    public String cobrar(double monto) {
+        return String.format("Comprobante Transferencia - sin recargo - total: $%.2f", monto);
+    }
+}
 
 //-----
 
+public class PagoMonedero implements PasarelaPago {
+    @Override
+    public String cobrar(double monto) {
+        double total = monto * 1.02;
+        return String.format("Comprobante Monedero - subtotal: $%.2f - comision 2%% - total: $%.2f", monto, total);
+    }
+}
 
+//-----
 
-A
+public abstract class CreadorPago {
+
+    public abstract PasarelaPago crearPasarela();
+    protected abstract double montoMinimo();
+
+    public String procesarOrden(OrdenCompra orden) {
+        if (orden == null || orden.monto() < montoMinimo()) {
+            return String.format("RECHAZADO - monto minimo para %s: $%.2f", orden.medio(), montoMinimo());
+        }
+        return crearPasarela().cobrar(orden.monto());
+    }
+
+    public static CreadorPago seleccionar(OrdenCompra orden) {
+        if (orden.medio().equalsIgnoreCase("tarjeta")) return new CreadorTarjeta();
+        if (orden.medio().equalsIgnoreCase("transferencia")) return new CreadorTransferencia();
+        if (orden.medio().equalsIgnoreCase("monedero")) return new CreadorMonedero();
+        throw new IllegalArgumentException("Medio no soportado: " + orden.medio());
+    }
+}
+
+//-----
+
+public class CreadorTransferencia extends CreadorPago {
+    @Override
+    public PasarelaPago crearPasarela() { return new PagoTransferencia(); }
+    @Override
+    protected double montoMinimo() { return 5000.0; }
+}
+
+//-----
+
+public class CreadorMonedero extends CreadorPago {
+    @Override
+    public PasarelaPago crearPasarela() { return new PagoMonedero(); }
+    @Override
+    protected double montoMinimo() { return 500.0; }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        OrdenCompra[] ordenes = {
+            new OrdenCompra("tarjeta", 146999.0),
+            new OrdenCompra("transferencia", 6700.0),
+            new OrdenCompra("monedero", 670.0),
+            new OrdenCompra("transferencia", 670.0)
+        };
+
+        for (OrdenCompra o : ordenes) {
+            System.out.println(CreadorPago.seleccionar(o).procesarOrden(o));
+        }
+    }
+}
