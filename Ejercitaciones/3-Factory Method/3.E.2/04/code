@@ -1,33 +1,113 @@
-//-----
-
-
-
-//-----
-
-
+public interface GeneradorFactura {
+    boolean validar(String[] conceptos, double[] importes);
+    String generar(String[] conceptos, double[] importes);
+}
 
 //-----
 
+public class GeneradorFacturaPDF implements GeneradorFactura {
 
+    @Override
+    public boolean validar(String[] conceptos, double[] importes) {
+        for (double monto : importes) {
+            if (monto <= 0) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String generar(String[] conceptos, double[] importes) {
+        double subtotal = 0;
+        StringBuilder sb = new StringBuilder("[FACTURA PDF]\n");
+        for (int i = 0; i < conceptos.length; i++) {
+            subtotal += importes[i];
+            sb.append(String.format("  %s - $%.2f\n", conceptos[i], importes[i]));
+        }
+        double iva = subtotal * 0.21;
+        sb.append(String.format("  Subtotal: $%.2f - IVA 21%%: $%.2f - Total: $%.2f", subtotal, iva, subtotal + iva));
+        return sb.toString();
+    }
+}
 
 //-----
 
+public class GeneradorTicketCaja implements GeneradorFactura {
 
+    @Override
+    public boolean validar(String[] conceptos, double[] importes) {
+        double suma = 0;
+        for (double monto : importes) {
+            if (monto <= 0) return false;
+            suma += monto;
+        }
+        return suma <= 100000.0;
+    }
+
+    @Override
+    public String generar(String[] conceptos, double[] importes) {
+        double subtotal = 0;
+        StringBuilder sb = new StringBuilder("[TICKET CAJA]\n");
+        for (int i = 0; i < conceptos.length; i++) {
+            subtotal += importes[i];
+            sb.append(String.format("  %s: $%.2f\n", conceptos[i], importes[i]));
+        }
+        double imp = subtotal * 0.10;
+        sb.append(String.format("  Sub: $%.2f - Imp 10%%: $%.2f - Total: $%.2f", subtotal, imp, subtotal + imp));
+        return sb.toString();
+    }
+}
 
 //-----
 
+public abstract class CreadorFactura {
 
+    public abstract GeneradorFactura crearGenerador();
+
+    public String emitirComprobante(String[] conceptos, double[] importes) {
+        if (conceptos == null || importes == null || conceptos.length == 0 || conceptos.length != importes.length) {
+            return "RECHAZADO - comprobante sin items validos";
+        }
+        GeneradorFactura generador = crearGenerador();
+        if (!generador.validar(conceptos, importes)) {
+            return "RECHAZADO - datos monetarios invalidos";
+        }
+        return generador.generar(conceptos, importes);
+    }
+}
 
 //-----
 
+public class CreadorFacturaPDF extends CreadorFactura {
+    @Override
+    public GeneradorFactura crearGenerador() {
+        return new GeneradorFacturaPDF();
+    }
+}
 
+//-----
+
+public class CreadorTicketCaja extends CreadorFactura {
+    @Override
+    public GeneradorFactura crearGenerador() {
+        return new GeneradorTicketCaja();
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) {
+        String[] conceptos = {"Rastros de Sangre tomo 1", "Felicidad tomo 1"};
+        double[] importesValidos = {6700.0, 8300.0};
+        double[] importesInvalidos = {6700.0, -500.0};
 
+        CreadorFactura[] creadores = { new CreadorFacturaPDF(), new CreadorTicketCaja() };
 
-//-----
-
-
-
-//-----
+        for (CreadorFactura c : creadores) {
+            System.out.println(c.emitirComprobante(conceptos, importesValidos));
+        }
+        System.out.println("Importe negativo - " + creadores[0].emitirComprobante(conceptos, importesInvalidos));
+        System.out.println("Ticket excedido - " + creadores[1].emitirComprobante(new String[]{"Another Edicion Especial"}, new double[]{146999.0}));
+        System.out.println("Comprobante vacio - " + creadores[0].emitirComprobante(new String[0], new double[0]));
+    }
+}
