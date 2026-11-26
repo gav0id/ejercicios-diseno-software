@@ -1,33 +1,110 @@
-//-----
-
-
-
-//-----
-
-
+public interface ComponenteGrafico {
+    void renderizar();
+    void interactuar(String evento);
+}
 
 //-----
 
+public class BotonEscritorio implements ComponenteGrafico {
+    @Override
+    public void renderizar() {
+        System.out.println("Escritorio (1920x1080) - Boton [140x40px, bordes rectos]");
+    }
 
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    @Override
+    public void interactuar(String evento) {
+        System.out.println("Escritorio - clic de mouse en boton: " + evento);
+    }
+}
 
 //-----
 
+public class EtiquetaEscritorio implements ComponenteGrafico {
+    @Override
+    public void renderizar() {
+        System.out.println("Escritorio (1920x1080) - Etiqueta [fuente 16px, margen amplio]");
+    }
 
+    @Override
+    public void interactuar(String evento) {
+        System.out.println("Escritorio - texto en etiqueta: " + evento);
+    }
+}
 
 //-----
 
+public class BotonMovil implements ComponenteGrafico {
+    @Override
+    public void renderizar() {
+        System.out.println("Movil (390x844) - Boton [ancho completo, radio 12px]");
+    }
 
+    @Override
+    public void interactuar(String evento) {
+        System.out.println("Movil - toque tactil en boton: " + evento);
+    }
+}
 
 //-----
+
+public class EtiquetaMovil implements ComponenteGrafico {
+    @Override
+    public void renderizar() {
+        System.out.println("Movil (390x844) - Etiqueta [fuente 14px, ajuste compacto]");
+    }
+
+    @Override
+    public void interactuar(String evento) {
+        System.out.println("Movil - texto en etiqueta: " + evento);
+    }
+}
+
+//-----
+
+public abstract class CreadorInterfaz {
+
+    public abstract ComponenteGrafico crearBoton();
+    public abstract ComponenteGrafico crearEtiqueta();
+
+    public void construirVista(String textoEtiqueta, String accionBoton) {
+        ComponenteGrafico etiqueta = crearEtiqueta();
+        ComponenteGrafico boton = crearBoton();
+        etiqueta.renderizar();
+        boton.renderizar();
+        etiqueta.interactuar(textoEtiqueta);
+        boton.interactuar(accionBoton);
+    }
+}
+
+//-----
+
+public class CreadorEscritorio extends CreadorInterfaz {
+    @Override
+    public ComponenteGrafico crearBoton() { return new BotonEscritorio(); }
+    @Override
+    public ComponenteGrafico crearEtiqueta() { return new EtiquetaEscritorio(); }
+}
+
+//-----
+
+public class CreadorMovil extends CreadorInterfaz {
+    @Override
+    public ComponenteGrafico crearBoton() { return new BotonMovil(); }
+    @Override
+    public ComponenteGrafico crearEtiqueta() { return new EtiquetaMovil(); }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorInterfaz[] entornos = {
+            new CreadorEscritorio(),
+            new CreadorMovil()
+        };
+
+        for (CreadorInterfaz ui : entornos) {
+            ui.construirVista("Reproduciendo: Rolling Girl - Hatsune Miku", "Pausar");
+        }
+    }
+}
