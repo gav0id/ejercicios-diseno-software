@@ -9,6 +9,7 @@
 Se implementó el patrón **Factory Method** mediante la interfaz `ServicioEnvio` y la clase creadora abstracta `CreadorEnvio`. El método `procesarEnvio(OrdenEnvio)` valida los datos generales y los requisitos geográficos propios de cada transportista (`validarDestino(OrdenEnvio)`) antes de invocar el método fábrica abstracto `crearServicio()`. De esta forma, `CreadorCorreoPostal`, `CreadorExpresoPrivado` y `CreadorRetiroSucursal` encapsulan tanto sus validaciones de destino como la instanciación del servicio concreto, manteniendo al cliente desacoplado.
 
 ## Evidencia de Diseño (UML)
+<img width="1122" height="546" alt="06 drawio" src="https://github.com/user-attachments/assets/787bfacf-e057-40bb-b66e-5d49f0b18ca9" />
 
 ## Fragmento de Código Clave
 ```java
