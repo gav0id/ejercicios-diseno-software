@@ -95,11 +95,7 @@ public class Main {
 
         for (String pref : preferencias) {
             CreadorRepositorio creador = seleccionarCreador(pref);
-            ejecutarNegocio(creador, "ost_silksong_67.mp3");
+            ejecutarNegocio(creador, "CogworkCore.mp3");
         }
     }
 }
-
-
-
-//-----
