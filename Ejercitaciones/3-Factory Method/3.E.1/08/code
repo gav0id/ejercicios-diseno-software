@@ -1,35 +1,92 @@
-
-
-//-----
-
-
+public interface Compresor {
+    String comprimir(String archivo);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class CompresorZIP implements Compresor {
+    @Override
+    public String comprimir(String archivo) {
+        return "ZIP - " + archivo + ".zip";
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class CompresorTAR implements Compresor {
+    @Override
+    public String comprimir(String archivo) {
+        return "TAR - " + archivo + ".tar";
+    }
+}
 
 //-----
 
+public class CompresorGZ implements Compresor {
+    @Override
+    public String comprimir(String archivo) {
+        return "GZ - " + archivo + ".gz";
+    }
+}
 
+//-----
 
-A
+public abstract class CreadorCompresor {
+    public abstract Compresor crearCompresor();
+}
+
+//-----
+
+public class CreadorZIP extends CreadorCompresor {
+    @Override
+    public Compresor crearCompresor() {
+        return new CompresorZIP();
+    }
+}
+
+//-----
+
+public class CreadorTAR extends CreadorCompresor {
+    @Override
+    public Compresor crearCompresor() {
+        return new CompresorTAR();
+    }
+}
+
+//-----
+
+public class CreadorGZ extends CreadorCompresor {
+    @Override
+    public Compresor crearCompresor() {
+        return new CompresorGZ();
+    }
+}
+
+//-----
+
+public class ServicioBackup {
+
+    private final CreadorCompresor creador;
+
+    public ServicioBackup(CreadorCompresor creador) {
+        this.creador = creador;
+    }
+
+    public void respaldar(String archivo) {
+        Compresor compresor = creador.crearCompresor();
+        System.out.println("Respaldo generado - " + compresor.comprimir(archivo));
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorCompresor[] creadores = { new CreadorZIP(), new CreadorTAR(), new CreadorGZ() };
+        String[] archivos = { "uzumaki_t1", "monster_t1", "another_t1" };
+
+        for (int i = 0; i < creadores.length; i++) {
+            new ServicioBackup(creadores[i]).respaldar(archivos[i]);
+        }
+    }
+}
