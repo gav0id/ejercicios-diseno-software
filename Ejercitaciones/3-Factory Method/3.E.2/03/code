@@ -1,33 +1,66 @@
-//-----
-
-
-
-//-----
-
-
+public interface Alerta {
+    void emitir(String mensaje);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class AlertaConsola implements Alerta {
+    @Override
+    public void emitir(String mensaje) {
+        System.out.println("Consola - " + mensaje);
+    }
+}
 
 //-----
 
+public class AlertaArchivo implements Alerta {
+    @Override
+    public void emitir(String mensaje) {
+        System.out.println("Archivo (server.log) - " + mensaje);
+    }
+}
 
+//-----
+
+public abstract class CreadorAlerta {
+
+    public abstract Alerta crearAlerta();
+
+    public void alertar(String mensaje) {
+        Alerta canal = crearAlerta();
+        canal.emitir(mensaje);
+    }
+}
 
 //-----
 
-
+public class CreadorConsola extends CreadorAlerta {
+    @Override
+    public Alerta crearAlerta() {
+        return new AlertaConsola();
+    }
+}
 
 //-----
 
-
+public class CreadorArchivo extends CreadorAlerta {
+    @Override
+    public Alerta crearAlerta() {
+        return new AlertaArchivo();
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorAlerta[] creadores = {
+            new CreadorConsola(),
+            new CreadorArchivo()
+        };
+
+        for (CreadorAlerta c : creadores) {
+            c.alertar("CPU al 95% en nodo-67");
+        }
+    }
+}
