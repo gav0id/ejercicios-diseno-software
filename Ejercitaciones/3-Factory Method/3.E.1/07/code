@@ -1,35 +1,110 @@
-
-
-//-----
-
-
-
-//-----
-
-
+public interface ComponenteUI {
+    void renderizar();
+    void interactuar(String entrada);
+}
 
 //-----
 
+public class BotonOscuro implements ComponenteUI {
+    @Override
+    public void renderizar() {
+        System.out.println("Escritorio Oscuro - Boton [#1E1E1E, borde gris]");
+    }
 
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    @Override
+    public void interactuar(String entrada) {
+        System.out.println("Escritorio Oscuro - clic en boton: " + entrada);
+    }
+}
 
 //-----
 
+public class CampoTextoOscuro implements ComponenteUI {
+    @Override
+    public void renderizar() {
+        System.out.println("Escritorio Oscuro - CampoTexto [#2D2D2D, texto blanco]");
+    }
 
+    @Override
+    public void interactuar(String entrada) {
+        System.out.println("Escritorio Oscuro - escribiendo: " + entrada);
+    }
+}
 
 //-----
 
+public class BotonMovil implements ComponenteUI {
+    @Override
+    public void renderizar() {
+        System.out.println("Movil Minimalista - Boton [plano, esquinas redondeadas]");
+    }
 
+    @Override
+    public void interactuar(String entrada) {
+        System.out.println("Movil Minimalista - toque tactil en boton: " + entrada);
+    }
+}
 
-A
+//-----
+
+public class CampoTextoMovil implements ComponenteUI {
+    @Override
+    public void renderizar() {
+        System.out.println("Movil Minimalista - CampoTexto [linea inferior, sin bordes]");
+    }
+
+    @Override
+    public void interactuar(String entrada) {
+        System.out.println("Movil Minimalista - teclado tactil: " + entrada);
+    }
+}
+
+//-----
+
+public abstract class CreadorUI {
+
+    public abstract ComponenteUI crearBoton();
+    public abstract ComponenteUI crearCampoTexto();
+
+    public void mostrarPantalla(String texto, String accionBoton) {
+        ComponenteUI campo = crearCampoTexto();
+        ComponenteUI boton = crearBoton();
+        campo.renderizar();
+        boton.renderizar();
+        campo.interactuar(texto);
+        boton.interactuar(accionBoton);
+    }
+}
+
+//-----
+
+public class CreadorEscritorioOscuro extends CreadorUI {
+    @Override
+    public ComponenteUI crearBoton() { return new BotonOscuro(); }
+    @Override
+    public ComponenteUI crearCampoTexto() { return new CampoTextoOscuro(); }
+}
+
+//-----
+
+public class CreadorMovilMinimalista extends CreadorUI {
+    @Override
+    public ComponenteUI crearBoton() { return new BotonMovil(); }
+    @Override
+    public ComponenteUI crearCampoTexto() { return new CampoTextoMovil(); }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorUI[] entornos = {
+            new CreadorEscritorioOscuro(),
+            new CreadorMovilMinimalista()
+        };
+
+        for (CreadorUI ui : entornos) {
+            ui.mostrarPantalla("Hollow Knight: Silksong", "Buscar");
+        }
+    }
+}
