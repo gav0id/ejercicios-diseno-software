@@ -1,33 +1,113 @@
-//-----
-
-
-
-//-----
-
-
+public interface ServicioEnvio {
+    String calcularEnvio(OrdenEnvio orden);
+}
 
 //-----
 
-
-
-//-----
-
-
+public record OrdenEnvio(String metodo, String destino, double pesoKg, double distanciaKm) {}
 
 //-----
 
+public class EnvioCorreoPostal implements ServicioEnvio {
+    @Override
+    public String calcularEnvio(OrdenEnvio orden) {
+        double costo = 2500.0 + (orden.pesoKg() * 400.0) + (orden.distanciaKm() * 8.0);
+        return String.format("Correo Postal (%s) - costo total: $%.2f - tiempo estimado: 5 a 7 dias habiles",
+                orden.destino(), costo);
+    }
+}
 
+//-----
+
+public class EnvioExpresoPrivado implements ServicioEnvio {
+    @Override
+    public String calcularEnvio(OrdenEnvio orden) {
+        double subtotal = 4500.0 + (orden.pesoKg() * 700.0) + (orden.distanciaKm() * 15.0);
+        double costo = subtotal * 1.15;
+        return String.format("Expreso Privado (%s) - costo total: $%.2f - tiempo estimado: 24 a 48 horas",
+                orden.destino(), costo);
+    }
+}
 
 //-----
 
+public class RetiroSucursal implements ServicioEnvio {
+    @Override
+    public String calcularEnvio(OrdenEnvio orden) {
+        return String.format("Retiro en Sucursal (%s) - costo total: $0.00 - tiempo estimado: disponible en 2 horas",
+                orden.destino());
+    }
+}
 
+//-----
+
+public abstract class CreadorEnvio {
+
+    public abstract ServicioEnvio crearServicio();
+    protected abstract boolean validarDestino(OrdenEnvio orden);
+
+    public String procesarEnvio(OrdenEnvio orden) {
+        if (orden == null || orden.destino() == null || orden.destino().isBlank() || orden.pesoKg() <= 0) {
+            return "RECHAZADO - datos de envio invalidos";
+        }
+        if (!validarDestino(orden)) {
+            return "RECHAZADO - destino no cumple requisitos para " + orden.metodo() + " (" + orden.destino() + ")";
+        }
+        return crearServicio().calcularEnvio(orden);
+    }
+
+    public static CreadorEnvio seleccionar(OrdenEnvio orden) {
+        if (orden.metodo().equalsIgnoreCase("postal")) return new CreadorCorreoPostal();
+        if (orden.metodo().equalsIgnoreCase("expreso")) return new CreadorExpresoPrivado();
+        if (orden.metodo().equalsIgnoreCase("sucursal")) return new CreadorRetiroSucursal();
+        throw new IllegalArgumentException("Metodo de envio no soportado: " + orden.metodo());
+    }
+}
 
 //-----
 
-
+public class CreadorCorreoPostal extends CreadorEnvio {
+    @Override
+    public ServicioEnvio crearServicio() { return new EnvioCorreoPostal(); }
+    @Override
+    protected boolean validarDestino(OrdenEnvio orden) { return orden.distanciaKm() > 0; }
+}
 
 //-----
 
-
+public class CreadorExpresoPrivado extends CreadorEnvio {
+    @Override
+    public ServicioEnvio crearServicio() { return new EnvioExpresoPrivado(); }
+    @Override
+    protected boolean validarDestino(OrdenEnvio orden) {
+        return orden.distanciaKm() > 0 && orden.distanciaKm() <= 1200 && orden.pesoKg() <= 30;
+    }
+}
 
 //-----
+
+public class CreadorRetiroSucursal extends CreadorEnvio {
+    @Override
+    public ServicioEnvio crearServicio() { return new RetiroSucursal(); }
+    @Override
+    protected boolean validarDestino(OrdenEnvio orden) {
+        return orden.destino().toLowerCase().startsWith("sucursal");
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        OrdenEnvio[] ordenes = {
+            new OrdenEnvio("postal", "Cordoba Capital", 2.5, 670),
+            new OrdenEnvio("expreso", "Buenos Aires", 1.2, 1050),
+            new OrdenEnvio("sucursal", "Sucursal Mendoza Centro", 0.8, 0),
+            new OrdenEnvio("expreso", "Ushuaia", 3.0, 2900)
+        };
+
+        for (OrdenEnvio o : ordenes) {
+            System.out.println(CreadorEnvio.seleccionar(o).procesarEnvio(o));
+        }
+    }
+}
