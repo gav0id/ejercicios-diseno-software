@@ -1,4 +1,24 @@
+public interface SistemaRespuesta {
+    void responder(String ubicacion, String nivelHumo);
+}
 
+//-----
+
+public class CentralAlarmas implements SistemaRespuesta {
+    @Override
+    public void responder(String ubicacion, String nivelHumo) {
+        System.out.println("Central Alarmas - sirena activada en " + ubicacion + " (nivel: " + nivelHumo + ")");
+    }
+}
+
+//-----
+
+public class RociadoresAutomaticos implements SistemaRespuesta {
+    @Override
+    public void responder(String ubicacion, String nivelHumo) {
+        System.out.println("Rociadores - descargando agua en " + ubicacion);
+    }
+}
 
 //-----
 
@@ -6,22 +26,62 @@
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class ServicioConserjeria implements SistemaRespuesta {
+    @Override
+    public void responder(String ubicacion, String nivelHumo) {
+        System.out.println("Conserjeria - evacuacion y aviso a bomberos para " + ubicacion);
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class SensorHumo {
+
+    private final String ubicacion;
+    private final List<SistemaRespuesta> sistemas = new ArrayList<>();
+
+    public SensorHumo(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
+
+    public void suscribir(SistemaRespuesta s) {
+        if (s != null && !sistemas.contains(s)) sistemas.add(s);
+    }
+
+    public void desuscribir(SistemaRespuesta s) {
+        sistemas.remove(s);
+    }
+
+    public void detectarHumo(String nivelHumo) {
+        System.out.println("Sensor [" + ubicacion + "] - humo detectado (" + nivelHumo + ")");
+        for (SistemaRespuesta s : new ArrayList<>(sistemas)) {
+            s.responder(ubicacion, nivelHumo);
+        }
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) {
+        SensorHumo sensorPiso2 = new SensorHumo("Piso 2 - Laboratorio");
+        SensorHumo sensorPiso5 = new SensorHumo("Piso 5 - Sala de Servidores");
 
+        SistemaRespuesta alarmas = new CentralAlarmas();
+        SistemaRespuesta rociadores = new RociadoresAutomaticos();
+        SistemaRespuesta conserjeria = new ServicioConserjeria();
 
-//-----
+        sensorPiso2.suscribir(alarmas);
+        sensorPiso2.suscribir(rociadores);
+        sensorPiso2.suscribir(conserjeria);
+
+        sensorPiso5.suscribir(alarmas);
+        sensorPiso5.suscribir(conserjeria);
+
+        sensorPiso2.detectarHumo("ALTO");
+        sensorPiso5.detectarHumo("MEDIO");
+    }
+}
