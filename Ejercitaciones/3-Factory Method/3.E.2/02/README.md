@@ -9,7 +9,7 @@
 Se implementó el patrón **Factory Method** mediante la interfaz `RepositorioArchivos` y la clase creadora abstracta `CreadorRepositorio`, que declara el método fábrica `crearRepositorio()` y centraliza la operación común `gestionarArchivo(String archivo)`. Las subclases `CreadorLocal` y `CreadorNube` encapsulan la instanciación y configuración de cada conector, mientras que la selección del creador queda separada de la lógica de negocio que gestiona los archivos.
 
 ## Evidencia de Diseño (UML)
-
+<img width="1162" height="272" alt="02 drawio" src="https://github.com/user-attachments/assets/641c9e7e-d6ce-42c1-90a4-f29d996d331c" />
 
 ## Fragmento de Código Clave
 ```java
