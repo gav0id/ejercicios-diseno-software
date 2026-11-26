@@ -1,33 +1,90 @@
-//-----
+public abstract class Enemigo {
 
+    private final String nombre;
+    private final int salud;
+    private final int danio;
+    private final int velocidad;
+    private String tactica;
 
+    protected Enemigo(String nombre, int salud, int danio, int velocidad) {
+        this.nombre = nombre;
+        this.salud = salud;
+        this.danio = danio;
+        this.velocidad = velocidad;
+    }
 
-//-----
+    public void setTactica(String tactica) {
+        this.tactica = tactica;
+    }
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " - " + nombre
+                + " (salud: " + salud + ", danio: " + danio + ", velocidad: " + velocidad + ", tactica: " + tactica + ")";
+    }
+}
 
 //-----
 
-
+public class SoldadoRaso extends Enemigo {
+    public SoldadoRaso(String nombre) {
+        super(nombre, 100, 15, 12);
+    }
+}
 
 //-----
+
+public class DronCombate extends Enemigo {
+    public DronCombate(String nombre) {
+        super(nombre, 70, 22, 28);
+    }
+}
+
+//-----
+
+public abstract class CreadorEnemigo {
+
+    public abstract Enemigo crearEnemigo(String nombre);
+
+    public static CreadorEnemigo obtenerCreador(String tipo) {
+        if (tipo.equalsIgnoreCase("soldado")) return new CreadorSoldadoRaso();
+        if (tipo.equalsIgnoreCase("dron")) return new CreadorDronCombate();
+        throw new IllegalArgumentException("Tipo no soportado: " + tipo);
+    }
+}
+
+//-----
+
+public class CreadorSoldadoRaso extends CreadorEnemigo {
+    @Override
+    public Enemigo crearEnemigo(String nombre) {
+        Enemigo e = new SoldadoRaso(nombre);
+        e.setTactica("Flanqueo y cobertura");
+        return e;
+    }
+}
+
+//-----
+
+public class CreadorDronCombate extends CreadorEnemigo {
+    @Override
+    public Enemigo crearEnemigo(String nombre) {
+        Enemigo e = new DronCombate(nombre);
+        e.setTactica("Ataque aereo en rafaga");
+        return e;
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        String[] tipos = {"soldado", "dron"};
+        String[] nombres = {"Unidad-Undertaker", "Dron-Juggernaut"};
+
+        for (int i = 0; i < tipos.length; i++) {
+            Enemigo e = CreadorEnemigo.obtenerCreador(tipos[i]).crearEnemigo(nombres[i]);
+            System.out.println(e);
+        }
+    }
+}
