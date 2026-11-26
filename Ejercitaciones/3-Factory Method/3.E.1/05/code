@@ -1,35 +1,110 @@
+public abstract class Personaje {
 
+    private final String nombre;
+    private final int vida;
+    private final int ataque;
+    private final int defensa;
+    private String arma;
 
-//-----
+    protected Personaje(String nombre, int vida, int ataque, int defensa) {
+        this.nombre = nombre;
+        this.vida = vida;
+        this.ataque = ataque;
+        this.defensa = defensa;
+    }
 
+    public void setArma(String arma) {
+        this.arma = arma;
+    }
 
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " - " + nombre
+                + " (vida: " + vida + ", ataque: " + ataque + ", defensa: " + defensa + ", arma: " + arma + ")";
+    }
+}
 
 //-----
 
+public class Guerrero extends Personaje {
+    public Guerrero(String nombre) {
+        super(nombre, 150, 25, 20);
+    }
+}
 
+//-----
 
-A
+public class Mago extends Personaje {
+    public Mago(String nombre) {
+        super(nombre, 90, 35, 10);
+    }
+}
+
+//-----
+
+public class Arquero extends Personaje {
+    public Arquero(String nombre) {
+        super(nombre, 110, 30, 14);
+    }
+}
+
+//-----
+
+public abstract class CreadorPersonaje {
+
+    public abstract Personaje crearPersonaje(String nombre);
+
+    public static CreadorPersonaje obtenerCreador(String tipo) {
+        if (tipo.equalsIgnoreCase("guerrero")) return new CreadorGuerrero();
+        if (tipo.equalsIgnoreCase("mago")) return new CreadorMago();
+        if (tipo.equalsIgnoreCase("arquero")) return new CreadorArquero();
+        throw new IllegalArgumentException("Tipo no soportado: " + tipo);
+    }
+}
+
+//-----
+
+public class CreadorGuerrero extends CreadorPersonaje {
+    @Override
+    public Personaje crearPersonaje(String nombre) {
+        Personaje p = new Guerrero(nombre);
+        p.setArma("Espada larga");
+        return p;
+    }
+}
+
+//-----
+
+public class CreadorMago extends CreadorPersonaje {
+    @Override
+    public Personaje crearPersonaje(String nombre) {
+        Personaje p = new Mago(nombre);
+        p.setArma("Baston arcano");
+        return p;
+    }
+}
+
+//-----
+
+public class CreadorArquero extends CreadorPersonaje {
+    @Override
+    public Personaje crearPersonaje(String nombre) {
+        Personaje p = new Arquero(nombre);
+        p.setArma("Arco compuesto");
+        return p;
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        String[] tipos = {"guerrero", "mago", "arquero"};
+        String[] nombres = {"Jorge Selva", "Nicolas Rincon", "Gabriel"};
+
+        for (int i = 0; i < tipos.length; i++) {
+            Personaje p = CreadorPersonaje.obtenerCreador(tipos[i]).crearPersonaje(nombres[i]);
+            System.out.println(p);
+        }
+    }
+}
