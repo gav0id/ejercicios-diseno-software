@@ -1,27 +1,83 @@
-
-
-//-----
-
-
+public interface LectorNoticias {
+    void recibirNoticia(Noticia noticia);
+}
 
 //-----
 
-
-
-//-----
-
-
+public record Noticia(String categoria, String titulo, String resumen) {}
 
 //-----
 
+public class UsuarioLector implements LectorNoticias {
 
+    private final String nombre;
+
+    public UsuarioLector(String nombre) {
+        this.nombre = nombre;
+    }
+
+    @Override
+    public void recibirNoticia(Noticia noticia) {
+        System.out.println("Bandeja de " + nombre + " - [" + noticia.categoria() + "] "
+                + noticia.titulo() + " - " + noticia.resumen());
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+public class PortalNoticias {
+
+    private final Map<String, List<LectorNoticias>> canales = new HashMap<>();
+
+    public void suscribir(String categoria, LectorNoticias lector) {
+        if (categoria == null || lector == null) return;
+        String clave = categoria.trim().toUpperCase();
+        List<LectorNoticias> lista = canales.computeIfAbsent(clave, k -> new ArrayList<>());
+        if (!lista.contains(lector)) {
+            lista.add(lector);
+        }
+    }
+
+    public void desuscribir(String categoria, LectorNoticias lector) {
+        if (categoria == null || lector == null) return;
+        List<LectorNoticias> lista = canales.get(categoria.trim().toUpperCase());
+        if (lista != null) {
+            lista.remove(lector);
+        }
+    }
+
+    public void publicar(Noticia noticia) {
+        if (noticia == null || noticia.categoria() == null) return;
+        List<LectorNoticias> lista = canales.get(noticia.categoria().trim().toUpperCase());
+        if (lista == null) return;
+        for (LectorNoticias lector : new ArrayList<>(lista)) {
+            lector.recibirNoticia(noticia);
+        }
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) {
+        PortalNoticias portal = new PortalNoticias();
+        LectorNoticias rei = new UsuarioLector("Rei Kurosawa");
+        LectorNoticias mei = new UsuarioLector("Mei Misaki");
 
+        portal.suscribir("Tecnologia", rei);
+        portal.suscribir("Deportes", mei);
+        portal.suscribir("Economia", rei);
+        portal.suscribir("Economia", mei);
 
-//-----
+        portal.publicar(new Noticia("Tecnologia", "Lanzamiento de nuevas GPU", "Mejoras en eficiencia energetica"));
+        portal.publicar(new Noticia("Deportes", "Final del torneo nacional", "Victoria en tiempo suplementario"));
+
+        portal.desuscribir("Economia", mei);
+        portal.publicar(new Noticia("Economia", "Actualizacion de tasas", "El banco central mantuvo la tasa base"));
+    }
+}
