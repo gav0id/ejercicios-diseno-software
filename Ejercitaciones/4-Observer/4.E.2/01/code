@@ -1,27 +1,65 @@
-
-
-//-----
-
-
+public interface ObservadorClic {
+    void alHacerClic(String pista);
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class Boton {
+    private final List<ObservadorClic> observadores = new ArrayList<>();
+
+    public void suscribir(ObservadorClic observador) {
+        observadores.add(observador);
+    }
+
+    public void desuscribir(ObservadorClic observador) {
+        observadores.remove(observador);
+    }
+
+    public void hacerClic(String pista) {
+        for (ObservadorClic observador : observadores) {
+            observador.alHacerClic(pista);
+        }
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class Ventana implements ObservadorClic {
+    public void alHacerClic(String pista) {
+        System.out.println(String.format("Ventana - Reproduciendo: %s", pista));
+    }
+}
 
 //-----
 
+public class ContadorDeClics implements ObservadorClic {
+    private int clics;
 
+    public void alHacerClic(String pista) {
+        clics++;
+        System.out.println("Contador - Clics: " + clics);
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        Boton boton = new Boton();
+        boton.suscribir(new Ventana());
+        boton.suscribir(new ContadorDeClics());
+
+        String[] pistas = {
+            "Rolling Girl - Hatsune Miku",
+            "World is Mine - Hatsune Miku",
+            "Melt - Hatsune Miku"
+        };
+
+        for (String pista : pistas) {
+            boton.hacerClic(pista);
+        }
+    }
+}
