@@ -1,27 +1,83 @@
-
-
-//-----
-
-
+public interface ObservadorStock {
+    void actualizar(String producto, int stockActual, int umbralMinimo);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class DepartamentoCompras implements ObservadorStock {
+    @Override
+    public void actualizar(String producto, int stockActual, int umbralMinimo) {
+        int aPedir = (umbralMinimo * 3) - stockActual;
+        System.out.println("Compras - stock bajo de " + producto + " (" + stockActual + ") - orden de reposicion por " + aPedir + " unidades");
+    }
+}
 
 //-----
 
-
+public class SistemaMarketing implements ObservadorStock {
+    @Override
+    public void actualizar(String producto, int stockActual, int umbralMinimo) {
+        String accion = stockActual == 0 ? "pausar anuncios" : "activar campana ultimas " + stockActual + " unidades";
+        System.out.println("Marketing - " + producto + " - " + accion);
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class ProductoInventario {
+
+    private final String nombre;
+    private int stock;
+    private final int umbralMinimo;
+    private final List<ObservadorStock> observadores = new ArrayList<>();
+
+    public ProductoInventario(String nombre, int stockInicial, int umbralMinimo) {
+        this.nombre = nombre;
+        this.stock = Math.max(0, stockInicial);
+        this.umbralMinimo = Math.max(1, umbralMinimo);
+    }
+
+    public void suscribir(ObservadorStock o) {
+        if (o != null && !observadores.contains(o)) observadores.add(o);
+    }
+
+    public void desuscribir(ObservadorStock o) {
+        observadores.remove(o);
+    }
+
+    public void vender(int cantidad) {
+        if (cantidad <= 0 || cantidad > stock) {
+            System.out.println("Venta rechazada - cantidad invalida (" + cantidad + ") para " + nombre);
+            return;
+        }
+        stock -= cantidad;
+        System.out.println("Venta - " + cantidad + "x " + nombre + " - stock restante: " + stock);
+        if (stock < umbralMinimo) {
+            notificar();
+        }
+    }
+
+    private void notificar() {
+        for (ObservadorStock o : new ArrayList<>(observadores)) {
+            o.actualizar(nombre, stock, umbralMinimo);
+        }
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        ProductoInventario gpu = new ProductoInventario("Placa de video RX 6600", 10, 5);
+        gpu.suscribir(new DepartamentoCompras());
+        gpu.suscribir(new SistemaMarketing());
+
+        gpu.vender(3);
+        gpu.vender(4);
+        gpu.vender(3);
+        gpu.vender(2);
+    }
+}
