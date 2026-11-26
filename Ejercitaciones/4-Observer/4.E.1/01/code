@@ -1,2 +1,72 @@
+public interface ObservadorTemperatura {
+    void actualizar(double temperatura);
+}
+
 //-----
+
+public class PantallaLobby implements ObservadorTemperatura {
+    @Override
+    public void actualizar(double temperatura) {
+        System.out.println("Pantalla Lobby - temperatura actual: " + temperatura + "C");
+    }
+}
+
 //-----
+
+public class PanelLaboratorio implements ObservadorTemperatura {
+    @Override
+    public void actualizar(double temperatura) {
+        String estado = temperatura > 26.0 ? "ALERTA CALOR" : "NORMAL";
+        System.out.println("Panel Laboratorio - " + temperatura + "C - estado: " + estado);
+    }
+}
+
+//-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class EstacionMeteorologica {
+
+    private final List<ObservadorTemperatura> observadores = new ArrayList<>();
+    private double temperatura;
+
+    public void registrar(ObservadorTemperatura o) {
+        if (o != null && !observadores.contains(o)) {
+            observadores.add(o);
+        }
+    }
+
+    public void desvincular(ObservadorTemperatura o) {
+        observadores.remove(o);
+    }
+
+    public void setTemperatura(double nuevaTemperatura) {
+        this.temperatura = nuevaTemperatura;
+        notificar();
+    }
+
+    private void notificar() {
+        for (ObservadorTemperatura o : observadores) {
+            o.actualizar(temperatura);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        EstacionMeteorologica estacion = new EstacionMeteorologica();
+        ObservadorTemperatura lobby = new PantallaLobby();
+        ObservadorTemperatura lab = new PanelLaboratorio();
+
+        estacion.registrar(lobby);
+        estacion.registrar(lab);
+        estacion.setTemperatura(22.5);
+
+        estacion.desvincular(lobby);
+        estacion.setTemperatura(28.0);
+    }
+}
+
