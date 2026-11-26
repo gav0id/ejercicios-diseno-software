@@ -1,27 +1,132 @@
-
-
-//-----
-
-
-
-//-----
-
-
+public interface ObservadorRegulatorio {
+    String getNombre();
+    void evaluarCambio(String cliente, String riesgoAnterior, String riesgoNuevo);
+}
 
 //-----
 
+import java.util.List;
 
+public record RegistroAuditoriaRiesgo(
+    String cliente,
+    String riesgoAnterior,
+    String riesgoNuevo,
+    List<String> exitosos,
+    List<String> incidencias
+) {
+    public RegistroAuditoriaRiesgo {
+        exitosos = List.copyOf(exitosos);
+        incidencias = List.copyOf(incidencias);
+    }
+}
 
 //-----
 
+public class CumplimientoLegal implements ObservadorRegulatorio {
+    @Override
+    public String getNombre() { return "CumplimientoLegal"; }
 
+    @Override
+    public void evaluarCambio(String cliente, String riesgoAnterior, String riesgoNuevo) {
+        System.out.println("Cumplimiento Legal - validando politicas para " + cliente + " (" + riesgoAnterior + " a " + riesgoNuevo + ")");
+    }
+}
 
 //-----
 
+public class PrevencionLavado implements ObservadorRegulatorio {
+    @Override
+    public String getNombre() { return "PrevencionLavado"; }
 
+    @Override
+    public void evaluarCambio(String cliente, String riesgoAnterior, String riesgoNuevo) {
+        if ("CRITICO".equalsIgnoreCase(riesgoNuevo)) {
+            throw new IllegalStateException("Timeout al consultar listas internacionales");
+        }
+        System.out.println("Prevencion Lavado - analisis AML completado para " + cliente + " (" + riesgoNuevo + ")");
+    }
+}
 
 //-----
 
+public class ReportesRegulatorios implements ObservadorRegulatorio {
+    @Override
+    public String getNombre() { return "ReportesRegulatorios"; }
 
+    @Override
+    public void evaluarCambio(String cliente, String riesgoAnterior, String riesgoNuevo) {
+        System.out.println("Reportes Regulatorios - informe emitido para " + cliente + " (" + riesgoNuevo + ")");
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class GestorRiesgoCliente {
+
+    private final CopyOnWriteArrayList<ObservadorRegulatorio> observadores = new CopyOnWriteArrayList<>();
+    private final ConcurrentHashMap<String, String> perfiles = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<RegistroAuditoriaRiesgo> historial = new CopyOnWriteArrayList<>();
+
+    public void suscribir(ObservadorRegulatorio o) {
+        if (o != null) observadores.addIfAbsent(o);
+    }
+
+    public void desuscribir(ObservadorRegulatorio o) {
+        observadores.remove(o);
+    }
+
+    public synchronized RegistroAuditoriaRiesgo actualizarRiesgo(String cliente, String nuevoRiesgo) {
+        String anterior = perfiles.getOrDefault(cliente, "BAJO");
+        String actual = nuevoRiesgo.trim().toUpperCase();
+        perfiles.put(cliente, actual);
+
+        List<String> exitosos = new ArrayList<>();
+        List<String> incidencias = new ArrayList<>();
+
+        for (ObservadorRegulatorio o : observadores) {
+            try {
+                o.evaluarCambio(cliente, anterior, actual);
+                exitosos.add(o.getNombre());
+            } catch (Exception e) {
+                incidencias.add(o.getNombre() + ": " + e.getMessage());
+            }
+        }
+
+        RegistroAuditoriaRiesgo registro = new RegistroAuditoriaRiesgo(cliente, anterior, actual, exitosos, incidencias);
+        historial.add(registro);
+        return registro;
+    }
+
+    public List<RegistroAuditoriaRiesgo> obtenerHistorial() {
+        return List.copyOf(historial);
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        GestorRiesgoCliente gestor = new GestorRiesgoCliente();
+        gestor.suscribir(new CumplimientoLegal());
+        gestor.suscribir(new PrevencionLavado());
+        gestor.suscribir(new ReportesRegulatorios());
+
+        Thread h1 = new Thread(() -> gestor.actualizarRiesgo("Mayu Amakura", "ALTO"));
+        Thread h2 = new Thread(() -> gestor.actualizarRiesgo("Raiden Shuga", "CRITICO"));
+
+        h1.start();
+        h2.start();
+        h1.join();
+        h2.join();
+
+        for (RegistroAuditoriaRiesgo r : gestor.obtenerHistorial()) {
+            System.out.println("Auditoria - " + r.cliente() + " (" + r.riesgoAnterior() + " a " + r.riesgoNuevo()
+                    + ") - ok: " + r.exitosos() + " - incidencias: " + r.incidencias());
+        }
+    }
+}
