@@ -1,27 +1,74 @@
-
-
-//-----
-
-
+public interface ObservadorPuntuacion {
+    void actualizar(int puntuacion, String motivo);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class PantallaJuego implements ObservadorPuntuacion {
+    @Override
+    public void actualizar(int puntuacion, String motivo) {
+        System.out.println("Pantalla Juego - puntuacion: " + puntuacion + " (" + motivo + ")");
+    }
+}
 
 //-----
 
+public class RegistroRecords implements ObservadorPuntuacion {
+    private int record = 0;
 
+    @Override
+    public void actualizar(int puntuacion, String motivo) {
+        if (puntuacion > record) record = puntuacion;
+        System.out.println("Registro Records - actual: " + puntuacion + " - record historico: " + record);
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class MarcadorJuego {
+
+    private final List<ObservadorPuntuacion> observadores = new ArrayList<>();
+    private int puntuacion = 0;
+
+    public void suscribir(ObservadorPuntuacion o) {
+        if (o != null && !observadores.contains(o)) observadores.add(o);
+    }
+
+    public void desuscribir(ObservadorPuntuacion o) {
+        observadores.remove(o);
+    }
+
+    public void sumarPuntos(int puntos, String motivo) {
+        if (puntos <= 0) return;
+        puntuacion += puntos;
+        notificar(motivo);
+    }
+
+    private void notificar(String motivo) {
+        for (ObservadorPuntuacion o : new ArrayList<>(observadores)) {
+            o.actualizar(puntuacion, motivo);
+        }
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        MarcadorJuego marcador = new MarcadorJuego();
+        ObservadorPuntuacion pantalla = new PantallaJuego();
+        ObservadorPuntuacion records = new RegistroRecords();
+
+        marcador.suscribir(pantalla);
+        marcador.suscribir(records);
+
+        marcador.sumarPuntos(150, "Obstaculo destruido");
+        marcador.sumarPuntos(100, "Objeto recolectado");
+
+        marcador.desuscribir(records);
+        marcador.sumarPuntos(250, "Nivel 1 completado");
+    }
+}
