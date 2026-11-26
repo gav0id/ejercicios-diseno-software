@@ -9,7 +9,7 @@
 Se implementó el patrón **Factory Method** mediante la interfaz común `PasarelaPago` y la clase creadora abstracta `CreadorPago`. El método `procesarOrden(OrdenCompra)` valida primero que el monto cumpla con el mínimo definido por cada subclase (`montoMinimo()`) y, recién si es válido, invoca el método fábrica abstracto `crearPasarela()` para ejecutar el cobro. De esta forma, `CreadorTarjeta`, `CreadorTransferencia` y `CreadorMonedero` encapsulan tanto la instanciación de su pasarela como sus reglas de mínimo, manteniendo al cliente desacoplado de las implementaciones concretas.
 
 ## Evidencia de Diseño (UML)
-![Diagrama de Clases UML](diagrama_uml.png)
+<img width="1242" height="456" alt="06 drawio" src="https://github.com/user-attachments/assets/f1d15adf-dfd6-4866-9f38-9727ee6f4241" />
 
 ## Fragmento de Código Clave
 ```java
@@ -38,3 +38,4 @@ public abstract class CreadorPago {
 ```
 
 ## Evidencia de Ejecución
+<img width="656" height="243" alt="{BFF701B8-CD81-4155-AB35-75DEA843169A}" src="https://github.com/user-attachments/assets/871c7b2f-7382-42ec-9458-52001b7d55ab" />
