@@ -25,23 +25,40 @@ public class PerfilDocente implements PerfilUsuario {
 
 //-----
 
+public abstract class CreadorPerfil {
 
+    public abstract PerfilUsuario crearPerfil();
 
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+    public void registrarUsuario(String nombre) {
+        PerfilUsuario perfil = crearPerfil();
+        System.out.println("Registro - " + nombre + " - Rol: " + perfil.getRol() + " - Permisos: " + perfil.getPermisos());
+    }
+}
 
 //-----
 
-
+public class CreadorEstudiante extends CreadorPerfil {
+    @Override
+    public PerfilUsuario crearPerfil() { return new PerfilEstudiante(); }
+}
 
 //-----
+
+public class CreadorDocente extends CreadorPerfil {
+    @Override
+    public PerfilUsuario crearPerfil() { return new PerfilDocente(); }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        CreadorPerfil[] creadores = { new CreadorEstudiante(), new CreadorDocente() };
+        String[] usuarios = { "Benito", "Lucia" };
+
+        for (int i = 0; i < creadores.length; i++) {
+            creadores[i].registrarUsuario(usuarios[i]);
+        }
+    }
+}
 
