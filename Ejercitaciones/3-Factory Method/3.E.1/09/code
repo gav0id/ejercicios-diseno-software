@@ -1,35 +1,206 @@
-
-
-//-----
-
-
-
-//-----
-
-
+public interface ConectorIoT {
+    void conectar(String credencial);
+    String leerTelemetria();
+}
 
 //-----
 
+public class ConectorMQTT implements ConectorIoT {
+    private final String broker;
 
+    public ConectorMQTT(String broker) {
+        this.broker = broker;
+    }
+
+    @Override
+    public void conectar(String credencial) {
+        System.out.println("MQTT - conectado a " + broker + " con token " + credencial);
+    }
+
+    @Override
+    public String leerTelemetria() {
+        return "MQTT [" + broker + "] - temp 67.5C";
+    }
+}
 
 //-----
 
+public class ConectorHTTP implements ConectorIoT {
+    private final String endpoint;
 
+    public ConectorHTTP(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    @Override
+    public void conectar(String credencial) {
+        System.out.println("HTTP - sesion iniciada en " + endpoint + " con key " + credencial);
+    }
+
+    @Override
+    public String leerTelemetria() {
+        return "HTTP [" + endpoint + "] - presion 101.3kPa";
+    }
+}
 
 //-----
 
+public class ConectorCoAP implements ConectorIoT {
+    private final String uri;
 
+    public ConectorCoAP(String uri) {
+        this.uri = uri;
+    }
+
+    @Override
+    public void conectar(String credencial) {
+        System.out.println("CoAP - observando " + uri + " con credencial " + credencial);
+    }
+
+    @Override
+    public String leerTelemetria() {
+        return "CoAP [" + uri + "] - vibracion 0.02g";
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
+public abstract class CreadorConectorIoT {
+    public abstract ConectorIoT crearConector(String credencial) throws Exception;
+}
 
 //-----
 
+public class CreadorMQTT extends CreadorConectorIoT {
+    private final String broker;
 
+    public CreadorMQTT(String broker) {
+        this.broker = broker;
+    }
 
-A
+    @Override
+    public ConectorIoT crearConector(String credencial) {
+        if (credencial == null || credencial.isBlank()) {
+            throw new IllegalArgumentException("MQTT - credencial invalida");
+        }
+        if (broker == null || !broker.startsWith("ssl://")) {
+            throw new IllegalStateException("MQTT - se requiere broker seguro ssl://");
+        }
+        ConectorMQTT c = new ConectorMQTT(broker);
+        c.conectar(credencial);
+        return c;
+    }
+}
+
+//-----
+
+public class CreadorHTTP extends CreadorConectorIoT {
+    private final String endpoint;
+
+    public CreadorHTTP(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    @Override
+    public ConectorIoT crearConector(String credencial) {
+        if (credencial == null || credencial.length() < 6) {
+            throw new IllegalArgumentException("HTTP - API key muy corta");
+        }
+        ConectorHTTP c = new ConectorHTTP(endpoint);
+        c.conectar(credencial);
+        return c;
+    }
+}
+
+//-----
+
+public class CreadorCoAP extends CreadorConectorIoT {
+    private final String uri;
+
+    public CreadorCoAP(String uri) {
+        this.uri = uri;
+    }
+
+    @Override
+    public ConectorIoT crearConector(String credencial) {
+        if (credencial == null || credencial.isBlank()) {
+            throw new IllegalArgumentException("CoAP - credencial requerida");
+        }
+        ConectorCoAP c = new ConectorCoAP(uri);
+        c.conectar(credencial);
+        return c;
+    }
+}
+
+//-----
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class GestorTelemetria {
+    private final ConcurrentHashMap<String, CreadorConectorIoT> fabricas = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> metricasExito = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> metricasFallo = new ConcurrentHashMap<>();
+
+    public void registrarFabrica(String protocolo, CreadorConectorIoT creador) {
+        fabricas.put(protocolo.toUpperCase(), creador);
+        metricasExito.putIfAbsent(protocolo.toUpperCase(), new AtomicInteger(0));
+        metricasFallo.putIfAbsent(protocolo.toUpperCase(), new AtomicInteger(0));
+    }
+
+    public ConectorIoT inicializarCanal(String protocolo, String credencial) {
+        String key = protocolo.toUpperCase();
+        CreadorConectorIoT creador = fabricas.get(key);
+        if (creador == null) {
+            metricasFallo.computeIfAbsent(key, k -> new AtomicInteger(0)).incrementAndGet();
+            return null;
+        }
+        try {
+            ConectorIoT conector = creador.crearConector(credencial);
+            metricasExito.get(key).incrementAndGet();
+            return conector;
+        } catch (Exception e) {
+            metricasFallo.get(key).incrementAndGet();
+            System.out.println("Fallo inicializando " + key + " - " + e.getMessage());
+            return null;
+        }
+    }
+
+    public void mostrarMetricas() {
+        for (String key : fabricas.keySet()) {
+            System.out.println("Metrica " + key + " - ok: " + metricasExito.get(key).get()
+                    + " - fallos: " + metricasFallo.get(key).get());
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        GestorTelemetria gestor = new GestorTelemetria();
+        gestor.registrarFabrica("MQTT", new CreadorMQTT("ssl://broker.pharloom.io:8883"));
+        gestor.registrarFabrica("HTTP", new CreadorHTTP("https://api.deepdocks.local/v1"));
+        gestor.registrarFabrica("CoAP", new CreadorCoAP("coap://greymoor.local/sensores"));
+
+        // Registro dinamico en tiempo de ejecucion sin tocar GestorTelemetria ni Main
+        gestor.registrarFabrica("MODBUS", cred -> {
+            if (cred == null || cred.isBlank()) throw new IllegalArgumentException("Modbus - sin credencial");
+            return new ConectorIoT() {
+                @Override public void conectar(String c) { System.out.println("MODBUS - conectado con " + c); }
+                @Override public String leerTelemetria() { return "MODBUS - registro 67 = 420"; }
+            };
+        });
+
+        String[] protos = {"MQTT", "HTTP", "COAP", "MQTT", "MODBUS"};
+        String[] creds = {"tok-67-miku", "key-67-luka", "cred-67-teto", "", "mod-67"};
+
+        for (int i = 0; i < protos.length; i++) {
+            ConectorIoT c = gestor.inicializarCanal(protos[i], creds[i]);
+            if (c != null) {
+                System.out.println("Lectura - " + c.leerTelemetria());
+            }
+        }
+        gestor.mostrarMetricas();
+    }
+}
