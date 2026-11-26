@@ -1,2 +1,47 @@
+public interface PerfilUsuario {
+    String getRol();
+    String getPermisos();
+}
+
 //-----
+
+public class PerfilEstudiante implements PerfilUsuario {
+    @Override
+    public String getRol() { return "Estudiante"; }
+
+    @Override
+    public String getPermisos() { return "Leer apuntes, comentar, entregar tareas"; }
+}
+
 //-----
+
+public class PerfilDocente implements PerfilUsuario {
+    @Override
+    public String getRol() { return "Docente"; }
+
+    @Override
+    public String getPermisos() { return "Publicar material, crear evaluaciones, calificar"; }
+}
+
+//-----
+
+
+
+//-----
+
+
+
+//-----
+
+
+
+//-----
+
+
+
+//-----
+
+
+
+//-----
+
