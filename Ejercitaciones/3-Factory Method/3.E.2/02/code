@@ -1,32 +1,104 @@
-//-----
-
-
-
-//-----
-
-
+public interface RepositorioArchivos {
+    void guardar(String archivo);
+    String recuperar(String archivo);
+}
 
 //-----
 
+public class RepositorioLocal implements RepositorioArchivos {
 
+    private final String ruta;
+
+    public RepositorioLocal(String ruta) {
+        this.ruta = ruta;
+    }
+
+    @Override
+    public void guardar(String archivo) {
+        System.out.println("Local (" + ruta + ") - guardando: " + archivo);
+    }
+
+    @Override
+    public String recuperar(String archivo) {
+        return ruta + "/" + archivo;
+    }
+}
 
 //-----
 
+public class RepositorioNube implements RepositorioArchivos {
 
+    private final String servidor;
+
+    public RepositorioNube(String servidor) {
+        this.servidor = servidor;
+    }
+
+    @Override
+    public void guardar(String archivo) {
+        System.out.println("Nube (" + servidor + ") - subiendo: " + archivo);
+    }
+
+    @Override
+    public String recuperar(String archivo) {
+        return servidor + "/" + archivo;
+    }
+}
 
 //-----
 
+public abstract class CreadorRepositorio {
 
+    public abstract RepositorioArchivos crearRepositorio();
+
+    public void gestionarArchivo(String archivo) {
+        RepositorioArchivos repo = crearRepositorio();
+        repo.guardar(archivo);
+        System.out.println("Recuperado - " + repo.recuperar(archivo));
+    }
+}
 
 //-----
 
-
+public class CreadorLocal extends CreadorRepositorio {
+    @Override
+    public RepositorioArchivos crearRepositorio() {
+        return new RepositorioLocal("C:/multimedia");
+    }
+}
 
 //-----
 
-
+public class CreadorNube extends CreadorRepositorio {
+    @Override
+    public RepositorioArchivos crearRepositorio() {
+        return new RepositorioNube("https://nube.pharloom.io/media");
+    }
+}
 
 //-----
+
+public class Main {
+
+    private static CreadorRepositorio seleccionarCreador(String preferencia) {
+        if (preferencia.equalsIgnoreCase("local")) return new CreadorLocal();
+        if (preferencia.equalsIgnoreCase("nube")) return new CreadorNube();
+        throw new IllegalArgumentException("Destino no soportado: " + preferencia);
+    }
+
+    private static void ejecutarNegocio(CreadorRepositorio creador, String archivo) {
+        creador.gestionarArchivo(archivo);
+    }
+
+    public static void main(String[] args) {
+        String[] preferencias = {"local", "nube"};
+
+        for (String pref : preferencias) {
+            CreadorRepositorio creador = seleccionarCreador(pref);
+            ejecutarNegocio(creador, "ost_silksong_67.mp3");
+        }
+    }
+}
 
 
 
