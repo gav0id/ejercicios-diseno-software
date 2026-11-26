@@ -80,7 +80,7 @@ public class CreadorDronCombate extends CreadorEnemigo {
 public class Main {
     public static void main(String[] args) {
         String[] tipos = {"soldado", "dron"};
-        String[] nombres = {"Unidad-Undertaker", "Dron-Juggernaut"};
+        String[] nombres = {"Unidad-Shinei Nouzen", "Dron-Undertaker"};
 
         for (int i = 0; i < tipos.length; i++) {
             Enemigo e = CreadorEnemigo.obtenerCreador(tipos[i]).crearEnemigo(nombres[i]);
