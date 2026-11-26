@@ -1,33 +1,226 @@
-//-----
-
-
-
-//-----
-
-
+public interface SensorAmbiental {
+    void inicializar(String direccionMemoria);
+    String leerDatos();
+}
 
 //-----
 
+public class SensorModBus implements SensorAmbiental {
+    private final String puerto;
 
+    public SensorModBus(String puerto) {
+        this.puerto = puerto;
+    }
+
+    @Override
+    public void inicializar(String direccionMemoria) {
+        System.out.println("ModBus (" + puerto + ") - inicializado en registro " + direccionMemoria);
+    }
+
+    @Override
+    public String leerDatos() {
+        return "ModBus [" + puerto + "] - temperatura 24.6C";
+    }
+}
+
+//-----
+
+public class SensorI2C implements SensorAmbiental {
+    private final String bus;
+
+    public SensorI2C(String bus) {
+        this.bus = bus;
+    }
+
+    @Override
+    public void inicializar(String direccionMemoria) {
+        System.out.println("I2C (" + bus + ") - inicializado en direccion " + direccionMemoria);
+    }
+
+    @Override
+    public String leerDatos() {
+        return "I2C [" + bus + "] - humedad 58.2%";
+    }
+}
 
 //-----
 
+public class SensorSPI implements SensorAmbiental {
+    private final String canalCS;
 
+    public SensorSPI(String canalCS) {
+        this.canalCS = canalCS;
+    }
+
+    @Override
+    public void inicializar(String direccionMemoria) {
+        System.out.println("SPI (" + canalCS + ") - inicializado en direccion " + direccionMemoria);
+    }
+
+    @Override
+    public String leerDatos() {
+        return "SPI [" + canalCS + "] - presion 1012.8hPa";
+    }
+}
 
 //-----
 
-
-
-//-----
-
-
+public abstract class CreadorSensor {
+    public abstract SensorAmbiental crearSensor(String direccionMemoria) throws Exception;
+}
 
 //-----
 
+public class CreadorModBus extends CreadorSensor {
+    private final String puerto;
 
+    public CreadorModBus(String puerto) {
+        this.puerto = puerto;
+    }
+
+    @Override
+    public SensorAmbiental crearSensor(String direccionMemoria) {
+        if (puerto == null || !puerto.startsWith("COM")) {
+            throw new IllegalStateException("ModBus - puerto serial invalido: " + puerto);
+        }
+        if (direccionMemoria == null || !direccionMemoria.matches("0x[0-9A-Fa-f]{4}")) {
+            throw new IllegalArgumentException("ModBus - direccion de registro invalida: " + direccionMemoria);
+        }
+        SensorModBus s = new SensorModBus(puerto);
+        s.inicializar(direccionMemoria);
+        return s;
+    }
+}
 
 //-----
 
+public class CreadorI2C extends CreadorSensor {
+    private final String bus;
 
+    public CreadorI2C(String bus) {
+        this.bus = bus;
+    }
+
+    @Override
+    public SensorAmbiental crearSensor(String direccionMemoria) {
+        if (bus == null || bus.isBlank()) {
+            throw new IllegalStateException("I2C - bus no configurado");
+        }
+        if (direccionMemoria == null || !direccionMemoria.matches("0x[0-9A-Fa-f]{2}")) {
+            throw new IllegalArgumentException("I2C - direccion de 7 bits invalida: " + direccionMemoria);
+        }
+        SensorI2C s = new SensorI2C(bus);
+        s.inicializar(direccionMemoria);
+        return s;
+    }
+}
 
 //-----
+
+public class CreadorSPI extends CreadorSensor {
+    private final String canalCS;
+
+    public CreadorSPI(String canalCS) {
+        this.canalCS = canalCS;
+    }
+
+    @Override
+    public SensorAmbiental crearSensor(String direccionMemoria) {
+        if (canalCS == null || !canalCS.startsWith("CS")) {
+            throw new IllegalStateException("SPI - linea Chip Select invalida: " + canalCS);
+        }
+        if (direccionMemoria == null || direccionMemoria.isBlank()) {
+            throw new IllegalArgumentException("SPI - direccion de memoria requerida");
+        }
+        SensorSPI s = new SensorSPI(canalCS);
+        s.inicializar(direccionMemoria);
+        return s;
+    }
+}
+
+//-----
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class GestorSensores {
+    private final ConcurrentHashMap<String, CreadorSensor> fabricas = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> metricasOk = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> metricasFallo = new ConcurrentHashMap<>();
+
+    public void registrarFabrica(String protocolo, CreadorSensor creador) {
+        String key = protocolo.toUpperCase();
+        fabricas.put(key, creador);
+        metricasOk.putIfAbsent(key, new AtomicInteger(0));
+        metricasFallo.putIfAbsent(key, new AtomicInteger(0));
+    }
+
+    public SensorAmbiental inicializarSensor(String protocolo, String direccionMemoria) {
+        String key = protocolo.toUpperCase();
+        CreadorSensor creador = fabricas.get(key);
+        if (creador == null) {
+            metricasFallo.computeIfAbsent(key, k -> new AtomicInteger(0)).incrementAndGet();
+            return null;
+        }
+        try {
+            SensorAmbiental sensor = creador.crearSensor(direccionMemoria);
+            metricasOk.get(key).incrementAndGet();
+            return sensor;
+        } catch (Exception e) {
+            metricasFallo.get(key).incrementAndGet();
+            System.out.println("Fallo inicializando " + key + " - " + e.getMessage());
+            return null;
+        }
+    }
+
+    public void mostrarMetricas() {
+        for (String key : fabricas.keySet()) {
+            System.out.println("Metrica " + key + " - ok: " + metricasOk.get(key).get()
+                    + " - fallos: " + metricasFallo.get(key).get());
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        GestorSensores gestor = new GestorSensores();
+        gestor.registrarFabrica("MODBUS", new CreadorModBus("COM4"));
+        gestor.registrarFabrica("I2C", new CreadorI2C("i2c-1"));
+        gestor.registrarFabrica("SPI", new CreadorSPI("CS0"));
+
+        gestor.registrarFabrica("UART", new CreadorSensor() {
+            @Override
+            public SensorAmbiental crearSensor(String dir) {
+                if (dir == null || dir.isBlank()) {
+                    throw new IllegalArgumentException("UART - direccion requerida");
+                }
+                SensorAmbiental s = new SensorAmbiental() {
+                    @Override
+                    public void inicializar(String d) {
+                        System.out.println("UART (/dev/ttyS0) - inicializado en " + d);
+                    }
+
+                    @Override
+                    public String leerDatos() {
+                        return "UART [/dev/ttyS0] - CO2 415ppm";
+                    }
+                };
+                s.inicializar(dir);
+                return s;
+            }
+        });
+
+        String[] protos = {"MODBUS", "I2C", "SPI", "I2C", "UART"};
+        String[] direcciones = {"0x0100", "0x76", "0x20", "INVALIDA", "0x10"};
+
+        for (int i = 0; i < protos.length; i++) {
+            SensorAmbiental s = gestor.inicializarSensor(protos[i], direcciones[i]);
+            if (s != null) {
+                System.out.println("Lectura - " + s.leerDatos());
+            }
+        }
+        gestor.mostrarMetricas();
+    }
+}
