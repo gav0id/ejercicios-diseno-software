@@ -9,7 +9,7 @@
 Se implementó el patrón **Factory Method** mediante la interfaz `ConectorIoT` y el creador abstracto `CreadorConectorIoT`, cuyo método fábrica `crearConector(String credencial)` es sobrescrito por cada factoría concreta (`CreadorMQTT`, `CreadorHTTP`, `CreadorCoAP`) para validar seguridad, inicializar el conector y lanzar excepciones ante fallos. Sobre esta jerarquía, `GestorTelemetria` actúa como registro centralizado usando `ConcurrentHashMap` y `AtomicInteger`, permitiendo incorporar nuevos protocolos en tiempo de ejecución sin modificar el código base (principio Abierto/Cerrado).
 
 ## Evidencia de Diseño (UML)
-![Diagrama de Clases UML](diagrama_uml.png)
+<img width="1122" height="506" alt="09 drawio" src="https://github.com/user-attachments/assets/48eae0dc-f1bb-42a3-9965-221b0b8fb3c0" />
 
 ## Fragmento de Código Clave
 ```java
@@ -36,3 +36,4 @@ public class GestorTelemetria {
 ```
 
 ## Evidencia de Ejecución
+<img width="699" height="406" alt="{ABB970FE-55C1-494C-960C-50177771D1EA}" src="https://github.com/user-attachments/assets/e13e4da5-0fd0-4b5b-9f9f-41023327e784" />
