@@ -83,7 +83,7 @@ public class ServicioBackup {
 public class Main {
     public static void main(String[] args) {
         CreadorCompresor[] creadores = { new CreadorZIP(), new CreadorTAR(), new CreadorGZ() };
-        String[] archivos = { "uzumaki_t1", "monster_t1", "another_t1" };
+        String[] archivos = { "minecraft", "hollow_knight:silksong", "pokemon_rojo_fuego" };
 
         for (int i = 0; i < creadores.length; i++) {
             new ServicioBackup(creadores[i]).respaldar(archivos[i]);
