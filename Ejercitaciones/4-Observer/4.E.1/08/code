@@ -1,27 +1,82 @@
-
-
-//-----
-
-
+public interface ObservadorTarea {
+    void actualizar(String titulo, String estadoAnterior, String estadoNuevo);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class NotificadorCorreo implements ObservadorTarea {
+    @Override
+    public void actualizar(String titulo, String estadoAnterior, String estadoNuevo) {
+        System.out.println("Correo - tarea '" + titulo + "' paso de " + estadoAnterior + " a " + estadoNuevo);
+    }
+}
 
 //-----
 
+public class ModuloEstadisticas implements ObservadorTarea {
+    private int completadas = 0;
 
+    @Override
+    public void actualizar(String titulo, String estadoAnterior, String estadoNuevo) {
+        if (estadoNuevo.equalsIgnoreCase("COMPLETADA")) {
+            completadas++;
+        }
+        System.out.println("Estadisticas - '" + titulo + "' en " + estadoNuevo + " - total completadas: " + completadas);
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class Tarea {
+
+    private final String titulo;
+    private String estado = "PENDIENTE";
+    private final List<ObservadorTarea> observadores = new ArrayList<>();
+
+    public Tarea(String titulo) {
+        this.titulo = titulo;
+    }
+
+    public void suscribir(ObservadorTarea o) {
+        if (o != null && !observadores.contains(o)) observadores.add(o);
+    }
+
+    public void desuscribir(ObservadorTarea o) {
+        observadores.remove(o);
+    }
+
+    public void cambiarEstado(String nuevoEstado) {
+        if (nuevoEstado == null || nuevoEstado.isBlank() || nuevoEstado.equalsIgnoreCase(estado)) return;
+        String anterior = this.estado;
+        this.estado = nuevoEstado.toUpperCase();
+        notificar(anterior, this.estado);
+    }
+
+    private void notificar(String anterior, String actual) {
+        for (ObservadorTarea o : new ArrayList<>(observadores)) {
+            o.actualizar(titulo, anterior, actual);
+        }
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        Tarea tarea = new Tarea("Implementar mapa de Pharloom");
+        ObservadorTarea correo = new NotificadorCorreo();
+        ObservadorTarea estadisticas = new ModuloEstadisticas();
+
+        tarea.suscribir(correo);
+        tarea.suscribir(estadisticas);
+
+        tarea.cambiarEstado("EN_PROGRESO");
+        tarea.cambiarEstado("COMPLETADA");
+
+        tarea.desuscribir(correo);
+        tarea.cambiarEstado("ARCHIVADA");
+    }
+}
