@@ -1,27 +1,85 @@
-
-
-//-----
-
-
+public interface VistaReproductor {
+    void actualizar(String estado, String cancion);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class BarraControl implements VistaReproductor {
+    @Override
+    public void actualizar(String estado, String cancion) {
+        System.out.println("Barra Control - [" + estado + "] " + cancion);
+    }
+}
 
 //-----
 
-
+public class VentanaMiniatura implements VistaReproductor {
+    @Override
+    public void actualizar(String estado, String cancion) {
+        System.out.println("Ventana Miniatura - [" + estado + "] " + cancion);
+    }
+}
 
 //-----
 
-
+public class WidgetPrincipal implements VistaReproductor {
+    @Override
+    public void actualizar(String estado, String cancion) {
+        System.out.println("Widget Principal - [" + estado + "] " + cancion);
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ReproductorMultimedia {
+
+    private final List<VistaReproductor> vistas = new ArrayList<>();
+    private String estado = "DETENIDO";
+    private String cancion = "Sin pista";
+
+    public void suscribir(VistaReproductor vista) {
+        if (vista != null && !vistas.contains(vista)) {
+            vistas.add(vista);
+        }
+    }
+
+    public void desuscribir(VistaReproductor vista) {
+        vistas.remove(vista);
+    }
+
+    public void cambiarEstado(String nuevoEstado, String nuevaCancion) {
+        this.estado = nuevoEstado;
+        this.cancion = nuevaCancion;
+        notificar();
+    }
+
+    private void notificar() {
+        for (VistaReproductor v : new ArrayList<>(vistas)) {
+            v.actualizar(estado, cancion);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        ReproductorMultimedia motor = new ReproductorMultimedia();
+        VistaReproductor barra = new BarraControl();
+        VistaReproductor miniatura = new VentanaMiniatura();
+        VistaReproductor widget = new WidgetPrincipal();
+
+        motor.suscribir(barra);
+        motor.suscribir(miniatura);
+        motor.suscribir(widget);
+
+        motor.cambiarEstado("REPRODUCIENDO", "Lace - Hollow Knight: Silksong");
+        motor.cambiarEstado("PAUSADO", "Lace - Hollow Knight: Silksong");
+
+        motor.desuscribir(miniatura);
+        motor.cambiarEstado("DETENIDO", "World is Mine - Hatsune Miku");
+    }
+}
