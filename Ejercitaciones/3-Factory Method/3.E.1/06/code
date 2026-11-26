@@ -77,6 +77,15 @@ public class CreadorMonedero extends CreadorPago {
 
 //-----
 
+public class CreadorTarjeta extends CreadorPago {
+    @Override
+    public PasarelaPago crearPasarela() { return new PagoTarjeta(); }
+    @Override
+    protected double montoMinimo() { return 1000.0; }
+}
+
+//-----
+
 public class Main {
     public static void main(String[] args) {
         OrdenCompra[] ordenes = {
