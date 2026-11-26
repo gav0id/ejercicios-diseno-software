@@ -1,27 +1,77 @@
-
-
-//-----
-
-
+public interface Auditor {
+    void registrar(String evento);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
+public class AuditorConsola implements Auditor {
+    @Override
+    public void registrar(String evento) {
+        System.out.println("Consola - " + evento);
+    }
+}
 
 //-----
 
-
+public class AuditorArchivo implements Auditor {
+    @Override
+    public void registrar(String evento) {
+        System.out.println("Archivo (auditoria.log) - " + evento);
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.List;
 
+public class GestorEmpleados {
+
+    private final List<Auditor> auditores = new ArrayList<>();
+
+    public void suscribir(Auditor a) {
+        if (a != null && !auditores.contains(a)) auditores.add(a);
+    }
+
+    public void desuscribir(Auditor a) {
+        auditores.remove(a);
+    }
+
+    public void alta(String empleado) {
+        notificar("ALTA - empleado: " + empleado);
+    }
+
+    public void modificar(String empleado, String cambio) {
+        notificar("MODIFICACION - empleado: " + empleado + " - " + cambio);
+    }
+
+    public void baja(String empleado) {
+        notificar("BAJA - empleado: " + empleado);
+    }
+
+    private void notificar(String evento) {
+        for (Auditor a : new ArrayList<>(auditores)) {
+            a.registrar(evento);
+        }
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) {
+        GestorEmpleados gestor = new GestorEmpleados();
+        Auditor consola = new AuditorConsola();
+        Auditor archivo = new AuditorArchivo();
+
+        gestor.suscribir(consola);
+        gestor.suscribir(archivo);
+
+        gestor.alta("Vladilena Milize");
+        gestor.modificar("Vladilena Milize", "puesto: Jefa de Operaciones");
+
+        gestor.desuscribir(consola);
+        gestor.baja("Vladilena Milize");
+    }
+}
+
