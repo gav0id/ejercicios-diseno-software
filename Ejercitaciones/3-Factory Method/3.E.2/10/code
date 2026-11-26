@@ -1,33 +1,168 @@
-//-----
-
-
-
-//-----
-
-
+public interface EmisorNotarial {
+    TituloPropiedad emitir(String jurisdiccion, String dniTitular, String matricula);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public record TituloPropiedad(
+    String jurisdiccion,
+    String dniTitular,
+    String matriculaCatastral,
+    String codigoNotarial,
+    String firmaDigital,
+    String documento
+) {}
 
 //-----
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
+public final class EmisorMendoza implements EmisorNotarial {
+
+    @Override
+    public TituloPropiedad emitir(String jurisdiccion, String dniTitular, String matricula) {
+        if (dniTitular == null || !dniTitular.matches("\\d{8}")) {
+            throw new IllegalArgumentException("MZA - DNI invalido (requiere 8 digitos)");
+        }
+        if (matricula == null || !matricula.matches("MZA-\\d{4}")) {
+            throw new IllegalArgumentException("MZA - matricula invalida (formato MZA-0000)");
+        }
+        String codigo = "NOT-MZA-" + Math.abs((dniTitular + matricula).hashCode());
+        String firma = firmar(jurisdiccion + "|" + dniTitular + "|" + matricula + "|" + codigo);
+        String doc = "[TITULO MZA] DNI: " + dniTitular + " - Matricula: " + matricula
+                + " - Codigo: " + codigo + " - Firma: " + firma;
+        return new TituloPropiedad(jurisdiccion, dniTitular, matricula, codigo, firma, doc);
+    }
+
+    private String firmar(String datos) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(datos.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16).toUpperCase();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error de firma digital", e);
+        }
+    }
+}
 
 //-----
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 
+public final class EmisorCordoba implements EmisorNotarial {
+
+    @Override
+    public TituloPropiedad emitir(String jurisdiccion, String dniTitular, String matricula) {
+        if (dniTitular == null || !dniTitular.matches("\\d{8}")) {
+            throw new IllegalArgumentException("CBA - DNI invalido (requiere 8 digitos)");
+        }
+        if (matricula == null || !matricula.matches("CBA-\\d{4}")) {
+            throw new IllegalArgumentException("CBA - matricula invalida (formato CBA-0000)");
+        }
+        String codigo = "NOT-CBA-" + Math.abs((dniTitular + matricula).hashCode());
+        String firma = firmar(jurisdiccion + "|" + dniTitular + "|" + matricula + "|" + codigo);
+        String doc = "[TITULO CBA] DNI: " + dniTitular + " - Matricula: " + matricula
+                + " - Codigo: " + codigo + " - Firma: " + firma;
+        return new TituloPropiedad(jurisdiccion, dniTitular, matricula, codigo, firma, doc);
+    }
+
+    private String firmar(String datos) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(datos.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16).toUpperCase();
+        } catch (Exception e) {
+            throw new IllegalStateException("Error de firma digital", e);
+        }
+    }
+}
 
 //-----
+
+import java.util.Objects;
+
+public abstract class CreadorTitulo {
+
+    private final String jurisdiccion;
+
+    protected CreadorTitulo(String jurisdiccion) {
+        if (jurisdiccion == null || jurisdiccion.isBlank()) {
+            throw new IllegalArgumentException("Jurisdiccion obligatoria");
+        }
+        this.jurisdiccion = jurisdiccion.trim().toUpperCase();
+    }
+
+    protected abstract EmisorNotarial crearEmisor();
+
+    public final TituloPropiedad emitirTitulo(String contextoJurisdiccion, String dniTitular, String matricula) {
+        if (contextoJurisdiccion == null || !contextoJurisdiccion.trim().equalsIgnoreCase(jurisdiccion)) {
+            throw new IllegalArgumentException("Contexto invalido - se esperaba " + jurisdiccion + " y llego " + contextoJurisdiccion);
+        }
+        EmisorNotarial emisor = Objects.requireNonNull(crearEmisor(), "Emisor nulo");
+        return emisor.emitir(
+                jurisdiccion,
+                dniTitular == null ? null : dniTitular.trim(),
+                matricula == null ? null : matricula.trim().toUpperCase()
+        );
+    }
+}
+
+//-----
+
+public final class CreadorMendoza extends CreadorTitulo {
+    public CreadorMendoza() { super("MZA"); }
+
+    @Override
+    protected EmisorNotarial crearEmisor() {
+        return new EmisorMendoza();
+    }
+}
+
+//-----
+
+public final class CreadorCordoba extends CreadorTitulo {
+    public CreadorCordoba() { super("CBA"); }
+
+    @Override
+    protected EmisorNotarial crearEmisor() {
+        return new EmisorCordoba();
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        CreadorTitulo[] creadores = { new CreadorMendoza(), new CreadorCordoba() };
+        String[] dnis = { "40123456", "38987654" };
+        String[] matriculas = { "MZA-4821", "CBA-7390" };
+
+        Thread[] hilos = new Thread[2];
+        for (int i = 0; i < 2; i++) {
+            int idx = i;
+            hilos[i] = new Thread(() -> {
+                TituloPropiedad titulo = creadores[idx].emitirTitulo(
+                        idx == 0 ? "MZA" : "CBA", dnis[idx], matriculas[idx]);
+                System.out.println("Emitido - " + titulo.documento());
+            });
+            hilos[i].start();
+        }
+        for (Thread t : hilos) t.join();
+
+        try {
+            creadores[0].emitirTitulo("CBA", "40123456", "MZA-4821");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Bloqueado - " + e.getMessage());
+        }
+
+        try {
+            creadores[1].emitirTitulo("CBA", "38987654", "CBA-00;DROP");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Bloqueado - " + e.getMessage());
+        }
+    }
+}
+
+
