@@ -183,13 +183,24 @@ public class Main {
         gestor.registrarFabrica("HTTP", new CreadorHTTP("https://api.deepdocks.local/v1"));
         gestor.registrarFabrica("CoAP", new CreadorCoAP("coap://greymoor.local/sensores"));
 
-        // Registro dinamico en tiempo de ejecucion sin tocar GestorTelemetria ni Main
-        gestor.registrarFabrica("MODBUS", cred -> {
-            if (cred == null || cred.isBlank()) throw new IllegalArgumentException("Modbus - sin credencial");
-            return new ConectorIoT() {
-                @Override public void conectar(String c) { System.out.println("MODBUS - conectado con " + c); }
-                @Override public String leerTelemetria() { return "MODBUS - registro 67 = 420"; }
-            };
+        gestor.registrarFabrica("MODBUS", new CreadorConectorIoT() {
+            @Override
+            public ConectorIoT crearConector(String cred) {
+                if (cred == null || cred.isBlank()) {
+                    throw new IllegalArgumentException("Modbus - sin credencial");
+                }
+                return new ConectorIoT() {
+                    @Override
+                    public void conectar(String c) {
+                        System.out.println("MODBUS - conectado con " + c);
+                    }
+
+                    @Override
+                    public String leerTelemetria() {
+                        return "MODBUS - registro 67 = 420";
+                    }
+                };
+            }
         });
 
         String[] protos = {"MQTT", "HTTP", "COAP", "MQTT", "MODBUS"};
