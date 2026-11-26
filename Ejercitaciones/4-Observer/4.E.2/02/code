@@ -1,27 +1,75 @@
-
-
-//-----
-
-
+public interface ObservadorRed {
+    void actualizar(String estado);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public class IconoBarraHerramientas implements ObservadorRed {
+    @Override
+    public void actualizar(String estado) {
+        String icono = estado.equalsIgnoreCase("Conectado") ? "[VERDE]"
+                : estado.equalsIgnoreCase("Intermitente") ? "[AMARILLO]" : "[ROJO]";
+        System.out.println("Icono Barra Herramientas - " + icono + " red: " + estado);
+    }
+}
 
 //-----
 
-
+public class BarraEstado implements ObservadorRed {
+    @Override
+    public void actualizar(String estado) {
+        System.out.println("Barra de Estado - Conexion actual: " + estado);
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class MonitorRed {
+
+    private final List<ObservadorRed> observadores = new ArrayList<>();
+    private String estado = "Desconectado";
+
+    public void suscribir(ObservadorRed o) {
+        if (o != null && !observadores.contains(o)) {
+            observadores.add(o);
+        }
+    }
+
+    public void desuscribir(ObservadorRed o) {
+        observadores.remove(o);
+    }
+
+    public void cambiarEstado(String nuevoEstado) {
+        if (nuevoEstado == null || nuevoEstado.isBlank() || nuevoEstado.equalsIgnoreCase(estado)) return;
+        this.estado = nuevoEstado;
+        notificar();
+    }
+
+    private void notificar() {
+        for (ObservadorRed o : new ArrayList<>(observadores)) {
+            o.actualizar(estado);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        MonitorRed monitor = new MonitorRed();
+        ObservadorRed icono = new IconoBarraHerramientas();
+        ObservadorRed barra = new BarraEstado();
+
+        monitor.suscribir(icono);
+        monitor.suscribir(barra);
+
+        monitor.cambiarEstado("Conectado");
+        monitor.cambiarEstado("Intermitente");
+
+        monitor.desuscribir(icono);
+        monitor.cambiarEstado("Desconectado");
+    }
+}
