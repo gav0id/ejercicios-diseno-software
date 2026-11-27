@@ -1,27 +1,102 @@
-
-
-//-----
-
-
+public record CotizacionDivisa(String divisa, double anterior, double actual, double variacionPct) {}
 
 //-----
 
-
-
-//-----
-
-
+public interface PanelOperador {
+    void actualizar(CotizacionDivisa cotizacion);
+}
 
 //-----
 
-
+public class GraficoTendencia implements PanelOperador {
+    @Override
+    public void actualizar(CotizacionDivisa c) {
+        String tendencia = c.variacionPct() > 0 ? "ALZA" : c.variacionPct() < 0 ? "BAJA" : "ESTABLE";
+        System.out.printf("Grafico Tendencia - %s [%s] $%.2f (%.2f%%)%n",
+                c.divisa(), tendencia, c.actual(), c.variacionPct());
+    }
+}
 
 //-----
 
-
+public class TablaConversion implements PanelOperador {
+    @Override
+    public void actualizar(CotizacionDivisa c) {
+        System.out.printf("Tabla Conversion - 100 %s = $%.2f (anterior: $%.2f - actual: $%.2f)%n",
+                c.divisa(), c.actual() * 100.0, c.anterior(), c.actual());
+    }
+}
 
 //-----
 
+public class AlarmaLimite implements PanelOperador {
+    private final double limiteSuperior;
 
+    public AlarmaLimite(double limiteSuperior) {
+        this.limiteSuperior = limiteSuperior;
+    }
+
+    @Override
+    public void actualizar(CotizacionDivisa c) {
+        if (c.actual() >= limiteSuperior) {
+            System.out.printf("Alarma Limite - %s supero el tope de $%.2f (actual: $%.2f)%n",
+                    c.divisa(), limiteSuperior, c.actual());
+        }
+    }
+}
 
 //-----
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class MonitorDivisas {
+
+    private final ConcurrentHashMap<String, Double> cotizaciones = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<PanelOperador> paneles = new CopyOnWriteArrayList<>();
+
+    public void suscribir(PanelOperador panel) {
+        if (panel != null) paneles.addIfAbsent(panel);
+    }
+
+    public void desuscribir(PanelOperador panel) {
+        paneles.remove(panel);
+    }
+
+    public synchronized void actualizarCotizacion(String divisa, double nuevoValor) {
+        if (divisa == null || divisa.isBlank() || nuevoValor <= 0) return;
+        String clave = divisa.trim().toUpperCase();
+        double anterior = cotizaciones.getOrDefault(clave, nuevoValor);
+        double variacionPct = ((nuevoValor - anterior) / anterior) * 100.0;
+        cotizaciones.put(clave, nuevoValor);
+
+        CotizacionDivisa evento = new CotizacionDivisa(clave, anterior, nuevoValor, variacionPct);
+        for (PanelOperador p : paneles) {
+            p.actualizar(evento);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        MonitorDivisas monitor = new MonitorDivisas();
+        monitor.actualizarCotizacion("USD", 1100.00);
+        monitor.actualizarCotizacion("EUR", 1200.00);
+
+        PanelOperador grafico = new GraficoTendencia();
+        PanelOperador tabla = new TablaConversion();
+        PanelOperador alarma = new AlarmaLimite(1200.00);
+
+        monitor.suscribir(grafico);
+        monitor.suscribir(tabla);
+        monitor.suscribir(alarma);
+
+        monitor.actualizarCotizacion("USD", 1155.00);
+        monitor.actualizarCotizacion("EUR", 1260.00);
+
+        monitor.desuscribir(grafico);
+        monitor.actualizarCotizacion("USD", 1120.35);
+    }
+}
