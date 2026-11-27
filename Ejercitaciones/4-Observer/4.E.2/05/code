@@ -1,27 +1,80 @@
-
-
-//-----
-
-
+public interface ActuadorDomotico {
+    void ajustar(String zona, int nivelLux);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public class PersianaMotorizada implements ActuadorDomotico {
+    @Override
+    public void ajustar(String zona, int nivelLux) {
+        String accion = nivelLux >= 700 ? "cerradas por sol intenso"
+                : nivelLux >= 300 ? "posicion intermedia" : "abiertas";
+        System.out.println("Persianas Motorizadas [" + zona + "] - " + accion + " (" + nivelLux + " lux)");
+    }
+}
 
 //-----
 
-
+public class LucesInteriores implements ActuadorDomotico {
+    @Override
+    public void ajustar(String zona, int nivelLux) {
+        String intensidad = nivelLux >= 700 ? "atenuadas al 10%"
+                : nivelLux >= 300 ? "atenuadas al 50%" : "encendidas al 100%";
+        System.out.println("Luces Interiores [" + zona + "] - " + intensidad + " (" + nivelLux + " lux)");
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class SensorLuzSolar {
+
+    private final String zona;
+    private final List<ActuadorDomotico> actuadores = new ArrayList<>();
+
+    public SensorLuzSolar(String zona) {
+        this.zona = zona;
+    }
+
+    public void suscribir(ActuadorDomotico a) {
+        if (a != null && !actuadores.contains(a)) actuadores.add(a);
+    }
+
+    public void desuscribir(ActuadorDomotico a) {
+        actuadores.remove(a);
+    }
+
+    public void reportarLuminosidad(int nivelLux) {
+        if (nivelLux < 0) return;
+        System.out.println("Sensor Luz [" + zona + "] - luminosidad exterior: " + nivelLux + " lux");
+        for (ActuadorDomotico a : new ArrayList<>(actuadores)) {
+            a.ajustar(zona, nivelLux);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        SensorLuzSolar sensorLiving = new SensorLuzSolar("Living");
+        SensorLuzSolar sensorEstudio = new SensorLuzSolar("Estudio");
+
+        ActuadorDomotico persianas = new PersianaMotorizada();
+        ActuadorDomotico luces = new LucesInteriores();
+
+        sensorLiving.suscribir(persianas);
+        sensorLiving.suscribir(luces);
+
+        sensorEstudio.suscribir(persianas);
+        sensorEstudio.suscribir(luces);
+
+        sensorLiving.reportarLuminosidad(850);
+        sensorEstudio.reportarLuminosidad(400);
+
+        sensorLiving.desuscribir(persianas);
+        sensorLiving.reportarLuminosidad(120);
+    }
+}
