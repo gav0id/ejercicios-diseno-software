@@ -1,27 +1,111 @@
-
-
-//-----
-
-
+public record AlertaSistema(String tipo, String severidad, String detalle) {}
 
 //-----
 
-
-
-//-----
-
-
+public interface SuscriptorAlerta {
+    void manejar(AlertaSistema alerta);
+}
 
 //-----
 
+public class ServicioAutoEscalado implements SuscriptorAlerta {
+    @Override
+    public void manejar(AlertaSistema alerta) {
+        System.out.println("AutoEscalado [" + alerta.severidad() + "] - escalando instancias por "
+                + alerta.tipo() + " - " + alerta.detalle());
+    }
+}
 
+//-----
+
+public class ServicioRespaldoDisco implements SuscriptorAlerta {
+    @Override
+    public void manejar(AlertaSistema alerta) {
+        System.out.println("RespaldoDisco [" + alerta.severidad() + "] - aislando volumen y replicando datos - "
+                + alerta.detalle());
+    }
+}
 
 //-----
 
-
+public class ServicioNotificacionGuardia implements SuscriptorAlerta {
+    @Override
+    public void manejar(AlertaSistema alerta) {
+        if (alerta.detalle().contains("TIMEOUT_SMTP")) {
+            throw new RuntimeException("Servidor de correo sin respuesta");
+        }
+        System.out.println("Guardia [" + alerta.severidad() + "] - aviso enviado por "
+                + alerta.tipo() + " - " + alerta.detalle());
+    }
+}
 
 //-----
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+public class BusAlertas {
+
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<SuscriptorAlerta>> rutas = new ConcurrentHashMap<>();
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+
+    public void suscribir(String tipoAlerta, SuscriptorAlerta suscriptor) {
+        if (tipoAlerta == null || suscriptor == null) return;
+        rutas.computeIfAbsent(tipoAlerta.trim().toUpperCase(), k -> new CopyOnWriteArrayList<>())
+             .addIfAbsent(suscriptor);
+    }
+
+    public void desuscribir(String tipoAlerta, SuscriptorAlerta suscriptor) {
+        if (tipoAlerta == null || suscriptor == null) return;
+        CopyOnWriteArrayList<SuscriptorAlerta> lista = rutas.get(tipoAlerta.trim().toUpperCase());
+        if (lista != null) lista.remove(suscriptor);
+    }
+
+    public void publicar(AlertaSistema alerta) {
+        if (alerta == null || alerta.tipo() == null) return;
+        CopyOnWriteArrayList<SuscriptorAlerta> lista = rutas.get(alerta.tipo().trim().toUpperCase());
+        if (lista == null) return;
+
+        for (SuscriptorAlerta s : lista) {
+            executor.submit(() -> {
+                try {
+                    s.manejar(alerta);
+                } catch (Exception e) {
+                    System.out.println("BusAlertas - error en suscriptor para " + alerta.tipo()
+                            + " - " + e.getMessage());
+                }
+            });
+        }
+    }
+
+    public void cerrar() throws InterruptedException {
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+    }
+}
 
 //-----
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        BusAlertas bus = new BusAlertas();
+        SuscriptorAlerta escalado = new ServicioAutoEscalado();
+        SuscriptorAlerta respaldo = new ServicioRespaldoDisco();
+        SuscriptorAlerta guardia = new ServicioNotificacionGuardia();
+
+        bus.suscribir("CPU_ALTA", escalado);
+        bus.suscribir("CPU_ALTA", guardia);
+        bus.suscribir("MEMORIA_INSUFICIENTE", escalado);
+        bus.suscribir("FALLO_DISCO", respaldo);
+        bus.suscribir("FALLO_DISCO", guardia);
+
+        bus.publicar(new AlertaSistema("CPU_ALTA", "CRITICA", "nodo-api-01 al 92% (TIMEOUT_SMTP)"));
+        bus.publicar(new AlertaSistema("MEMORIA_INSUFICIENTE", "ALTA", "nodo-db-02 RAM libre 4%"));
+        bus.publicar(new AlertaSistema("FALLO_DISCO", "CRITICA", "nodo-storage-03 sector danado en /dev/sdb"));
+
+        bus.cerrar();
+    }
+}
