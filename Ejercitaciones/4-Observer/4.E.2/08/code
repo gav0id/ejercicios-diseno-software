@@ -1,27 +1,85 @@
-
-
-//-----
-
-
+public interface ObservadorInventario {
+    void actualizar(String producto, int stockAnterior, int stockNuevo, String operacion);
+}
 
 //-----
 
-
-
-//-----
-
-
-
-//-----
-
-
-
-//-----
-
-
+public class ModuloFacturacion implements ObservadorInventario {
+    @Override
+    public void actualizar(String producto, int stockAnterior, int stockNuevo, String operacion) {
+        if (stockNuevo < stockAnterior) {
+            int vendidas = stockAnterior - stockNuevo;
+            System.out.println("Facturacion - comprobante emitido por " + vendidas + "x " + producto + " (" + operacion + ")");
+        }
+    }
+}
 
 //-----
 
+public class ModuloEstadisticas implements ObservadorInventario {
+    private int movimientos = 0;
 
+    @Override
+    public void actualizar(String producto, int stockAnterior, int stockNuevo, String operacion) {
+        movimientos++;
+        System.out.println("Estadisticas - " + producto + " [" + operacion + "] stock: "
+                + stockAnterior + " a " + stockNuevo + " - total movimientos: " + movimientos);
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProductoInventario {
+
+    private final String nombre;
+    private int stock;
+    private final List<ObservadorInventario> observadores = new ArrayList<>();
+
+    public ProductoInventario(String nombre, int stockInicial) {
+        this.nombre = nombre;
+        this.stock = Math.max(0, stockInicial);
+    }
+
+    public void suscribir(ObservadorInventario o) {
+        if (o != null && !observadores.contains(o)) observadores.add(o);
+    }
+
+    public void desuscribir(ObservadorInventario o) {
+        observadores.remove(o);
+    }
+
+    public void modificarStock(int delta, String operacion) {
+        if (delta == 0 || stock + delta < 0) return;
+        int anterior = this.stock;
+        this.stock += delta;
+        notificar(anterior, this.stock, operacion);
+    }
+
+    private void notificar(int anterior, int actual, String operacion) {
+        for (ObservadorInventario o : new ArrayList<>(observadores)) {
+            o.actualizar(nombre, anterior, actual, operacion);
+        }
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) {
+        ProductoInventario monitor = new ProductoInventario("Monitor ASUS TUF 144Hz", 10);
+        ObservadorInventario facturacion = new ModuloFacturacion();
+        ObservadorInventario estadisticas = new ModuloEstadisticas();
+
+        monitor.suscribir(facturacion);
+        monitor.suscribir(estadisticas);
+
+        monitor.modificarStock(-3, "VENTA");
+        monitor.modificarStock(5, "REPOSICION");
+
+        monitor.desuscribir(facturacion);
+        monitor.modificarStock(-2, "VENTA");
+    }
+}
