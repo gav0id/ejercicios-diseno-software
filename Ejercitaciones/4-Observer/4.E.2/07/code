@@ -1,27 +1,83 @@
-
-
-//-----
-
-
+public record Video(String canalId, String titulo, int duracionMin) {}
 
 //-----
 
-
-
-//-----
-
-
+public interface SuscriptorCanal {
+    void recibirAlerta(Video video);
+}
 
 //-----
 
+public class UsuarioStreaming implements SuscriptorCanal {
 
+    private final String nombre;
+
+    public UsuarioStreaming(String nombre) {
+        this.nombre = nombre;
+    }
+
+    @Override
+    public void recibirAlerta(Video video) {
+        System.out.println("Alerta para " + nombre + " - " + video.canalId()
+                + " subio: " + video.titulo() + " (" + video.duracionMin() + " min)");
+    }
+}
 
 //-----
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+public class PlataformaStreaming {
+
+    private final Map<String, List<SuscriptorCanal>> canales = new HashMap<>();
+
+    public void suscribir(String canalId, SuscriptorCanal usuario) {
+        if (canalId == null || usuario == null) return;
+        String clave = canalId.trim().toLowerCase();
+        List<SuscriptorCanal> seguidores = canales.computeIfAbsent(clave, k -> new ArrayList<>());
+        if (!seguidores.contains(usuario)) {
+            seguidores.add(usuario);
+        }
+    }
+
+    public void desuscribir(String canalId, SuscriptorCanal usuario) {
+        if (canalId == null || usuario == null) return;
+        List<SuscriptorCanal> seguidores = canales.get(canalId.trim().toLowerCase());
+        if (seguidores != null) {
+            seguidores.remove(usuario);
+        }
+    }
+
+    public void publicarVideo(Video video) {
+        if (video == null || video.canalId() == null) return;
+        List<SuscriptorCanal> seguidores = canales.get(video.canalId().trim().toLowerCase());
+        if (seguidores == null) return;
+        for (SuscriptorCanal u : new ArrayList<>(seguidores)) {
+            u.recibirAlerta(video);
+        }
+    }
+}
 
 //-----
 
+public class Main {
+    public static void main(String[] args) {
+        PlataformaStreaming plataforma = new PlataformaStreaming();
+        SuscriptorCanal mio = new UsuarioStreaming("Mio Amakura");
+        SuscriptorCanal theo = new UsuarioStreaming("Theoto Rikka");
 
+        plataforma.suscribir("@TeamCherry", mio);
+        plataforma.suscribir("@TeamCherry", theo);
+        plataforma.suscribir("@DECO27", mio);
 
-//-----
+        plataforma.publicarVideo(new Video("@TeamCherry", "Hollow Knight: Silksong - Gameplay Pharloom", 14));
+        plataforma.publicarVideo(new Video("@DECO27", "Hibana - Hatsune Miku (MV Oficial)", 4));
+
+        plataforma.desuscribir("@TeamCherry", theo);
+        plataforma.publicarVideo(new Video("@TeamCherry", "Diario de Desarrollo - Combate de Hornet", 9));
+    }
+}
+
