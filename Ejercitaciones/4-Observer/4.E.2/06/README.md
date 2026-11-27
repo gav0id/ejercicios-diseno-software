@@ -8,8 +8,8 @@
 **Justificación Lógica (Patrón Observer):**  
 Se implementó el patrón **Observer** mediante la interfaz `PanelOperador`, el `record` inmutable `CotizacionDivisa` y el sujeto observable `MonitorDivisas`. `MonitorDivisas` centraliza la actualización de valores en un `ConcurrentHashMap` y gestiona los paneles con `CopyOnWriteArrayList`, propagando el evento a todos los suscriptores sin acoplarse a la lógica de cada panel ni sufrir fallos por modificaciones concurrentes.
 
-## Evidencia de Diseño (UML)<img width="882" height="414" alt="06 drawio" src="https://github.com/user-attachments/assets/1d2df260-9a5d-4f17-bb3a-4f441fb7ab4a" />
-
+## Evidencia de Diseño (UML)
+<img width="882" height="414" alt="06 drawio" src="https://github.com/user-attachments/assets/b0724e56-d49b-43cc-8382-87bc58e6d6ff" />
 
 ## Fragmento de Código Clave
 ```java
