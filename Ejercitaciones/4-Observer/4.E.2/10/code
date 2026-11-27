@@ -1,27 +1,132 @@
-
-
-//-----
-
-
-
-//-----
-
-
+public interface EntidadRegulatoria {
+    String getNombre();
+    void auditar(String cuentaCorporativa, String riesgoAnterior, String riesgoNuevo);
+}
 
 //-----
 
+import java.util.List;
 
+public record AuditoriaCumplimiento(
+    String cuentaCorporativa,
+    String riesgoAnterior,
+    String riesgoNuevo,
+    List<String> exitosas,
+    List<String> incidencias
+) {
+    public AuditoriaCumplimiento {
+        exitosas = List.copyOf(exitosas);
+        incidencias = List.copyOf(incidencias);
+    }
+}
 
 //-----
 
+public class PrevencionLavado implements EntidadRegulatoria {
+    @Override
+    public String getNombre() { return "PrevencionLavado"; }
 
+    @Override
+    public void auditar(String cuentaCorporativa, String riesgoAnterior, String riesgoNuevo) {
+        if ("CRITICO".equalsIgnoreCase(riesgoNuevo)) {
+            throw new IllegalStateException("Error al consultar base global AML");
+        }
+        System.out.println("Prevencion Lavado - verificacion AML aprobada para " + cuentaCorporativa + " (" + riesgoNuevo + ")");
+    }
+}
 
 //-----
 
+public class AnalisisLegal implements EntidadRegulatoria {
+    @Override
+    public String getNombre() { return "AnalisisLegal"; }
 
+    @Override
+    public void auditar(String cuentaCorporativa, String riesgoAnterior, String riesgoNuevo) {
+        System.out.println("Analisis Legal - revision contractual de " + cuentaCorporativa + " (" + riesgoAnterior + " a " + riesgoNuevo + ")");
+    }
+}
 
 //-----
 
+public class OrganismosInternacionales implements EntidadRegulatoria {
+    @Override
+    public String getNombre() { return "OrganismosInternacionales"; }
 
+    @Override
+    public void auditar(String cuentaCorporativa, String riesgoAnterior, String riesgoNuevo) {
+        System.out.println("Organismos Internacionales - reporte regulatorio enviado para " + cuentaCorporativa + " (" + riesgoNuevo + ")");
+    }
+}
 
 //-----
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class GestorRiesgoCorporativo {
+
+    private final CopyOnWriteArrayList<EntidadRegulatoria> observadores = new CopyOnWriteArrayList<>();
+    private final ConcurrentHashMap<String, String> perfiles = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<AuditoriaCumplimiento> historial = new CopyOnWriteArrayList<>();
+
+    public void suscribir(EntidadRegulatoria e) {
+        if (e != null) observadores.addIfAbsent(e);
+    }
+
+    public void desuscribir(EntidadRegulatoria e) {
+        observadores.remove(e);
+    }
+
+    public synchronized AuditoriaCumplimiento modificarRiesgo(String cuentaCorporativa, String nuevoRiesgo) {
+        String anterior = perfiles.getOrDefault(cuentaCorporativa, "BAJO");
+        String actual = nuevoRiesgo.trim().toUpperCase();
+        perfiles.put(cuentaCorporativa, actual);
+
+        List<String> exitosas = new ArrayList<>();
+        List<String> incidencias = new ArrayList<>();
+
+        for (EntidadRegulatoria e : observadores) {
+            try {
+                e.auditar(cuentaCorporativa, anterior, actual);
+                exitosas.add(e.getNombre());
+            } catch (Exception ex) {
+                incidencias.add(e.getNombre() + ": " + ex.getMessage());
+            }
+        }
+
+        AuditoriaCumplimiento registro = new AuditoriaCumplimiento(cuentaCorporativa, anterior, actual, exitosas, incidencias);
+        historial.add(registro);
+        return registro;
+    }
+
+    public List<AuditoriaCumplimiento> obtenerHistorial() {
+        return List.copyOf(historial);
+    }
+}
+
+//-----
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        GestorRiesgoCorporativo gestor = new GestorRiesgoCorporativo();
+        gestor.suscribir(new PrevencionLavado());
+        gestor.suscribir(new AnalisisLegal());
+        gestor.suscribir(new OrganismosInternacionales());
+
+        Thread h1 = new Thread(() -> gestor.modificarRiesgo("Crypton Future Media", "ALTO"));
+        Thread h2 = new Thread(() -> gestor.modificarRiesgo("Team Cherry Pty Ltd", "CRITICO"));
+
+        h1.start();
+        h2.start();
+        h1.join();
+        h2.join();
+
+        for (AuditoriaCumplimiento a : gestor.obtenerHistorial()) {
+            System.out.println("Auditoria - " + a.cuentaCorporativa() + " (" + a.riesgoAnterior() + " a " + a.riesgoNuevo()
+                    + ") - ok: " + a.exitosas() + " - incidencias: " + a.incidencias());
+        }
+    }
+}
